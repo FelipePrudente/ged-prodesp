@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Primeiro Acesso - Gestão de Documentos Prodesp</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #003366 0%, #0066cc 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 1rem 2rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header img {
+            height: 50px;
+            width: auto;
+        }
+
+        .container {
+            background: white;
+            padding: 3rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 500px;
+            margin: 80px 20px 20px 20px;
+        }
+
+        .welcome-message {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .welcome-message h1 {
+            color: #003366;
+            margin-bottom: 0.5rem;
+            font-size: 1.8rem;
+        }
+
+        .welcome-message p {
+            color: #666;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #0066cc;
+        }
+
+        .password-requirements {
+            background: #f8f9fa;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .password-requirements h4 {
+            color: #003366;
+            margin-bottom: 0.5rem;
+        }
+
+        .password-requirements ul {
+            margin-left: 1rem;
+        }
+
+        .password-requirements li {
+            margin-bottom: 0.25rem;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #003366 0%, #0066cc 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+            display: none;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0066cc;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="logo-prodesp.svg" alt="Logo Prodesp">
+    </div>
+
+    <div class="container">
+        <div class="welcome-message">
+            <h1>Bem-vindo ao Sistema!</h1>
+            <p>Este é seu primeiro acesso. Por favor, defina uma nova senha para sua conta.</p>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+
+        <form id="passwordChangeForm">
+            <div class="form-group">
+                <label for="newPassword">Nova Senha</label>
+                <input type="password" id="newPassword" name="newPassword" required>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword">Confirmar Nova Senha</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required>
+            </div>
+
+            <div class="password-requirements">
+                <h4>Requisitos da Senha:</h4>
+                <ul>
+                    <li>Mínimo de 6 caracteres</li>
+                    <li>Pelo menos uma letra maiúscula</li>
+                    <li>Pelo menos uma letra minúscula</li>
+                    <li>Pelo menos um número</li>
+                </ul>
+            </div>
+
+            <button type="submit" class="btn" id="submitBtn">Alterar Senha</button>
+        </form>
+
+        <div class="loading" id="loading">Alterando senha...</div>
+    </div>
+
+    <!-- Supabase SDK e cliente -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabaseClient.js"></script>
+
+    <script>
+        let usuarioLogado = null;
+
+        // Verificar se o usuário está logado e se é primeiro acesso ou senha provisória
+        async function checkFirstAccess() {
+            const usuario = localStorage.getItem('usuario_logado');
+            if (!usuario) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            usuarioLogado = JSON.parse(usuario);
+            
+            try {
+                // Verificar se é primeiro acesso ou senha provisória
+                const { data: profile } = await window.supabaseClient
+                    .from('profiles')
+                    .select('primeiro_acesso, senha_provisoria')
+                    .eq('user_id', usuarioLogado.id)
+                    .maybeSingle();
+
+                if (!profile) {
+                    redirectToDashboard();
+                    return;
+                }
+
+                if (!profile.primeiro_acesso && !profile.senha_provisoria) {
+                    // Não é primeiro acesso nem senha provisória, redirecionar para dashboard
+                    redirectToDashboard();
+                }
+
+                // Atualizar mensagem baseada no tipo de acesso
+                if (profile.senha_provisoria) {
+                    document.querySelector('.welcome-message h1').textContent = 'Senha Provisória Detectada!';
+                    document.querySelector('.welcome-message p').textContent = 'Você está usando uma senha provisória. Por favor, defina uma nova senha para sua conta.';
+                }
+            } catch (error) {
+                console.error('Erro ao verificar status do usuário:', error);
+                showError('Erro ao verificar status do usuário.');
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+            document.getElementById('submitBtn').disabled = show;
+        }
+
+        function validatePassword(password) {
+            const minLength = 6;
+            const hasUpperCase = /[A-Z]/.test(password);
+            const hasLowerCase = /[a-z]/.test(password);
+            const hasNumber = /\d/.test(password);
+
+            if (password.length < minLength) {
+                return 'A senha deve ter pelo menos 6 caracteres.';
+            }
+            if (!hasUpperCase) {
+                return 'A senha deve conter pelo menos uma letra maiúscula.';
+            }
+            if (!hasLowerCase) {
+                return 'A senha deve conter pelo menos uma letra minúscula.';
+            }
+            if (!hasNumber) {
+                return 'A senha deve conter pelo menos um número.';
+            }
+
+            return null;
+        }
+
+        async function changePassword(newPassword) {
+            try {
+                // Atualizar senha no Supabase Auth
+                const { error: updateError } = await window.supabaseClient.auth.updateUser({
+                    password: newPassword
+                });
+
+                if (updateError) {
+                    throw updateError;
+                }
+
+                // Marcar que não é mais primeiro acesso e limpar senha provisória
+                const { error: profileError } = await window.supabaseClient
+                    .from('profiles')
+                    .update({ 
+                        primeiro_acesso: false,
+                        senha_provisoria: false
+                    })
+                    .eq('user_id', usuarioLogado.id);
+
+                if (profileError) {
+                    console.warn('Senha alterada, mas erro ao atualizar perfil:', profileError);
+                }
+
+                return true;
+            } catch (error) {
+                console.error('Erro ao alterar senha:', error);
+                throw error;
+            }
+        }
+
+        function redirectToDashboard() {
+            // Verificar se o usuário tem perfil admin
+            const hasAdmin = usuarioLogado.roles?.includes('admin') || usuarioLogado.perfil === 'admin';
+            const activeRole = localStorage.getItem('active_role') || 'user';
+            
+            if (hasAdmin && activeRole === 'admin') {
+                window.location.href = 'admin.html';
+            } else {
+                window.location.href = 'dashboard.html';
+            }
+        }
+
+        // Form submission
+        document.getElementById('passwordChangeForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            // Validar se as senhas coincidem
+            if (newPassword !== confirmPassword) {
+                showError('As senhas não coincidem.');
+                return;
+            }
+
+            // Validar requisitos da senha
+            const passwordError = validatePassword(newPassword);
+            if (passwordError) {
+                showError(passwordError);
+                return;
+            }
+
+            showLoading(true);
+            showError('');
+
+            try {
+                await changePassword(newPassword);
+                showSuccess('Senha alterada com sucesso! Redirecionando...');
+                
+                // Aguardar um pouco antes de redirecionar
+                setTimeout(() => {
+                    redirectToDashboard();
+                }, 2000);
+            } catch (error) {
+                showError('Erro ao alterar senha: ' + (error.message || 'Erro desconhecido'));
+            } finally {
+                showLoading(false);
+            }
+        });
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            checkFirstAccess();
+        });
+    </script>
+</body>
+</html>

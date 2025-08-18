@@ -1,0 +1,43 @@
+# Arquivos temporários
+*.tmp
+*.temp
+*.log
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+
+# Arquivos de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Arquivos de backup
+*.bak
+*.backup
+
+# Arquivos de configuração local
+.env
+.env.local
+config.local.js
+
+# Arquivos de cache
+.cache/
+node_modules/
+
+# Arquivos de build
+dist/
+build/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Arquivos de teste
+test-results/
+coverage/
+
+# Arquivos específicos do projeto
+# Adicione aqui arquivos que não devem ser versionados

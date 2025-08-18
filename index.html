@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Documentos Prodesp</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #003366 0%, #0066cc 50%, #004080 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            background: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header img {
+            height: 50px;
+            width: auto;
+        }
+
+        .main-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 80px);
+        }
+
+        .login-container {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .logo {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .logo h1 {
+            color: #003366;
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        .logo p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #0066cc;
+        }
+
+        .form-group input::placeholder {
+            color: #999;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #003366 0%, #0066cc 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
+        }
+
+        .forgot-password {
+            margin-top: 1rem;
+        }
+
+        .forgot-password a {
+            color: #0066cc;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                margin: 1rem;
+                padding: 2rem;
+            }
+        }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 1.5rem 2rem 1rem;
+            border-bottom: 1px solid #e1e5e9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            color: #003366;
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 1.5rem 2rem 2rem;
+        }
+
+        .modal-body p {
+            color: #666;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="logo-prodesp.svg" alt="Logo Prodesp">
+    </div>
+    
+    <div class="main-content">
+        <div class="login-container">
+            <div class="logo">
+                <h1>PRODESP</h1>
+                <p>Gestão de Documentos</p>
+            </div>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    placeholder="Digite seu e-mail"
+                    required
+                >
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    placeholder="Digite sua senha"
+                    required
+                >
+            </div>
+            
+            <div class="error-message" id="errorMessage">
+                E-mail ou senha incorretos. Tente novamente.
+            </div>
+            
+            <button type="submit" class="login-btn">
+                Entrar
+            </button>
+        </form>
+        
+        <div class="forgot-password">
+            <a href="#" onclick="showForgotPasswordModal()">
+                Esqueceu sua senha?
+            </a>
+        </div>
+
+        <!-- Modal Esqueci Minha Senha -->
+        <div id="forgotPasswordModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Recuperação de Senha</h2>
+                    <span class="close" onclick="closeForgotPasswordModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <p>Digite seu e-mail cadastrado no sistema. Os administradores receberão uma notificação e entrarão em contato para fornecer uma nova senha provisória.</p>
+                    
+                    <div class="form-group">
+                        <label for="recoveryEmail">E-mail</label>
+                        <input type="email" id="recoveryEmail" placeholder="Digite seu e-mail" required>
+                    </div>
+                    
+                    <div class="error-message" id="recoveryErrorMessage" style="display: none;"></div>
+                    <div class="success-message" id="recoverySuccessMessage" style="display: none;"></div>
+                    
+                    <div class="modal-actions">
+                        <button type="button" class="btn" onclick="requestPasswordRecovery()">Solicitar Recuperação</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeForgotPasswordModal()">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- Supabase SDK e cliente -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabaseClient.js"></script>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // Validação básica
+            if (!email || !password) {
+                errorMessage.style.display = 'block';
+                errorMessage.textContent = 'Por favor, preencha todos os campos.';
+                return;
+            }
+            
+            // Validação de e-mail
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                errorMessage.style.display = 'block';
+                errorMessage.textContent = 'Por favor, digite um e-mail válido.';
+                return;
+            }
+            
+            try {
+                if (!window.supabaseClient) {
+                    throw new Error('Cliente Supabase não inicializado.');
+                }
+
+                // Autenticação via Supabase
+                const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) {
+                    // Fallback opcional: mantém login demo do admin local
+                    if (email === 'teste@teste.com.br' && password === '123456') {
+                        errorMessage.style.display = 'none';
+                        window.location.href = 'admin.html';
+                        return;
+                    }
+                    throw error;
+                }
+
+                const user = data?.user;
+
+                // Busca o perfil e roles do usuário
+                let nome = email;
+                let areaId = null;
+                let roles = ['user'];
+                
+                const { data: profile } = await window.supabaseClient
+                    .from('profiles')
+                    .select('nome, area_id')
+                    .eq('user_id', user.id)
+                    .maybeSingle();
+
+                if (profile) {
+                    nome = profile.nome || nome;
+                    areaId = profile.area_id ?? null;
+                }
+
+                // Busca roles do usuário
+                const { data: rolesData } = await window.supabaseClient
+                    .from('user_roles')
+                    .select('role')
+                    .eq('user_id', user.id);
+
+                if (rolesData && rolesData.length > 0) {
+                    roles = rolesData.map(r => r.role);
+                }
+
+                // Define o perfil principal (admin tem prioridade)
+                const primaryRole = roles.includes('admin') ? 'admin' : roles[0] || 'user';
+
+                // Persiste sessão mínima para telas atuais
+                localStorage.setItem('usuario_logado', JSON.stringify({
+                    id: user.id,
+                    email: user.email,
+                    nome,
+                    perfil: primaryRole,
+                    roles: roles,
+                    areaId
+                }));
+                // Define o perfil ativo padrão
+                localStorage.setItem('active_role', primaryRole === 'admin' ? 'admin' : 'user');
+
+                errorMessage.style.display = 'none';
+                
+                // Verificar se é primeiro acesso ou senha provisória
+                const { data: profileData } = await window.supabaseClient
+                    .from('profiles')
+                    .select('primeiro_acesso, senha_provisoria')
+                    .eq('user_id', user.id)
+                    .maybeSingle();
+
+                if (profileData && (profileData.primeiro_acesso || profileData.senha_provisoria)) {
+                    // É primeiro acesso ou senha provisória, redirecionar para tela de troca de senha
+                    window.location.href = 'primeiro-acesso.html';
+                } else {
+                    // Não é primeiro acesso nem senha provisória, redirecionar normalmente
+                    if (primaryRole === 'admin') {
+                        window.location.href = 'admin.html';
+                    } else {
+                        window.location.href = 'dashboard.html';
+                    }
+                }
+            } catch (err) {
+                console.error('Erro no login:', err);
+                errorMessage.style.display = 'block';
+                errorMessage.textContent = 'E-mail ou senha incorretos. Tente novamente.';
+            }
+        });
+
+        // Funções para recuperação de senha
+        function showForgotPasswordModal() {
+            document.getElementById('forgotPasswordModal').style.display = 'flex';
+            document.getElementById('recoveryEmail').focus();
+        }
+
+        function closeForgotPasswordModal() {
+            document.getElementById('forgotPasswordModal').style.display = 'none';
+            document.getElementById('recoveryEmail').value = '';
+            document.getElementById('recoveryErrorMessage').style.display = 'none';
+            document.getElementById('recoverySuccessMessage').style.display = 'none';
+        }
+
+        async function requestPasswordRecovery() {
+            const email = document.getElementById('recoveryEmail').value.trim();
+            const errorMessage = document.getElementById('recoveryErrorMessage');
+            const successMessage = document.getElementById('recoverySuccessMessage');
+
+            // Validação
+            if (!email) {
+                showRecoveryError('Por favor, digite seu e-mail.');
+                return;
+            }
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showRecoveryError('Por favor, digite um e-mail válido.');
+                return;
+            }
+
+            try {
+                // Verificar se o usuário existe
+                const { data: profile, error: profileError } = await window.supabaseClient
+                    .from('profiles')
+                    .select('user_id, nome, email')
+                    .eq('email', email)
+                    .maybeSingle();
+
+                if (profileError) {
+                    console.error('Erro ao buscar perfil:', profileError);
+                    throw profileError;
+                }
+
+                if (!profile) {
+                    showRecoveryError('E-mail não encontrado no sistema.');
+                    return;
+                }
+
+                // Verificar se já existe uma solicitação pendente
+                const { data: existingRequest, error: checkError } = await window.supabaseClient
+                    .from('solicitacoes_recuperacao')
+                    .select('id, status')
+                    .eq('user_id', profile.user_id)
+                    .eq('status', 'pendente')
+                    .maybeSingle();
+
+                if (checkError) {
+                    console.error('Erro ao verificar solicitação existente:', checkError);
+                    throw checkError;
+                }
+
+                if (existingRequest) {
+                    showRecoveryError('Já existe uma solicitação de recuperação pendente para este e-mail.');
+                    return;
+                }
+
+                // Criar solicitação de recuperação usando RPC para contornar RLS
+                const { error: insertError } = await window.supabaseClient
+                    .rpc('criar_solicitacao_recuperacao', {
+                        p_user_id: profile.user_id,
+                        p_email: profile.email,
+                        p_nome: profile.nome
+                    });
+
+                if (insertError) {
+                    console.error('Erro ao inserir solicitação:', insertError);
+                    
+                    // Se RPC não existir, tentar inserção direta
+                    if (insertError.message && insertError.message.includes('function') && insertError.message.includes('does not exist')) {
+                        console.log('RPC não existe, tentando inserção direta...');
+                        
+                        const { error: directInsertError } = await window.supabaseClient
+                            .from('solicitacoes_recuperacao')
+                            .insert({
+                                user_id: profile.user_id,
+                                email: profile.email,
+                                nome: profile.nome,
+                                status: 'pendente'
+                            });
+
+                        if (directInsertError) {
+                            console.error('Erro na inserção direta:', directInsertError);
+                            if (directInsertError.code === '42501') {
+                                showRecoveryError('Erro de permissão. Entre em contato com o administrador do sistema.');
+                            } else {
+                                throw directInsertError;
+                            }
+                            return;
+                        }
+                    } else {
+                        throw insertError;
+                    }
+                }
+
+                // Marcar no profile que solicitou recuperação
+                const { error: updateError } = await window.supabaseClient
+                    .from('profiles')
+                    .update({
+                        solicitou_recuperacao: true,
+                        data_solicitacao: new Date().toISOString()
+                    })
+                    .eq('user_id', profile.user_id);
+
+                if (updateError) {
+                    console.warn('Solicitação criada, mas erro ao atualizar perfil:', updateError);
+                }
+
+                showRecoverySuccess('Solicitação enviada com sucesso! Os administradores receberão uma notificação e entrarão em contato em breve.');
+                
+                // Fechar modal após 3 segundos
+                setTimeout(() => {
+                    closeForgotPasswordModal();
+                }, 3000);
+
+            } catch (error) {
+                console.error('Erro ao solicitar recuperação:', error);
+                
+                if (error.code === '42501') {
+                    showRecoveryError('Erro de permissão. Entre em contato com o administrador do sistema.');
+                } else if (error.message) {
+                    showRecoveryError('Erro ao processar solicitação: ' + error.message);
+                } else {
+                    showRecoveryError('Erro ao processar solicitação. Tente novamente.');
+                }
+            }
+        }
+
+        function showRecoveryError(message) {
+            const errorDiv = document.getElementById('recoveryErrorMessage');
+            const successDiv = document.getElementById('recoverySuccessMessage');
+            
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            successDiv.style.display = 'none';
+        }
+
+        function showRecoverySuccess(message) {
+            const errorDiv = document.getElementById('recoveryErrorMessage');
+            const successDiv = document.getElementById('recoverySuccessMessage');
+            
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            errorDiv.style.display = 'none';
+        }
+
+        // Fechar modal ao clicar fora dele
+        window.onclick = function(event) {
+            const modal = document.getElementById('forgotPasswordModal');
+            if (event.target === modal) {
+                closeForgotPasswordModal();
+            }
+        }
+    </script>
+</body>
+</html>

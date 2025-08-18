@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administração - Gestão de Documentos Prodesp</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .header {
+            background: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header img {
+            height: 50px;
+            width: auto;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-info span {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .logout-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
+        }
+
+        .container {
+            display: flex;
+            min-height: calc(100vh - 80px);
+        }
+
+        .sidebar {
+            width: 250px;
+            background: #003366;
+            color: white;
+            padding: 2rem 0;
+        }
+
+        .sidebar h2 {
+            padding: 0 2rem 1rem;
+            border-bottom: 1px solid #004080;
+            margin-bottom: 1rem;
+        }
+
+        .menu-item {
+            padding: 1rem 2rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .menu-item:hover {
+            background: #004080;
+        }
+
+        .menu-item.active {
+            background: #0066cc;
+        }
+
+        .menu-item i {
+            width: 20px;
+            text-align: center;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+        }
+
+        .content-header {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .content-header h1 {
+            color: #003366;
+            margin-bottom: 0.5rem;
+        }
+
+        .content-header p {
+            color: #666;
+        }
+
+        .content-area {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            min-height: 400px;
+        }
+
+        .form-section {
+            display: none;
+        }
+
+        .form-section.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #0066cc;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #003366 0%, #0066cc 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .table th, .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e1e5e9;
+        }
+
+        .table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .action-btn {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .action-btn.delete {
+            background: #e74c3c;
+        }
+
+        .action-btn:hover {
+            opacity: 0.8;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            font-weight: normal;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+                 @media (max-width: 768px) {
+             .sidebar {
+                 width: 200px;
+             }
+             
+             .main-content {
+                 padding: 1rem;
+             }
+         }
+
+         /* Status das solicitações */
+         .status-pendente {
+             background: #fff3cd;
+             color: #856404;
+             padding: 4px 8px;
+             border-radius: 4px;
+             font-size: 0.8rem;
+             font-weight: 500;
+         }
+
+         .status-aprovada {
+             background: #d4edda;
+             color: #155724;
+             padding: 4px 8px;
+             border-radius: 4px;
+             font-size: 0.8rem;
+             font-weight: 500;
+         }
+
+         .status-rejeitada {
+             background: #f8d7da;
+             color: #721c24;
+             padding: 4px 8px;
+             border-radius: 4px;
+             font-size: 0.8rem;
+             font-weight: 500;
+         }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="logo-prodesp.svg" alt="Logo Prodesp">
+        <div class="user-info">
+            <span id="currentRole">Administrador</span>
+            <button class="logout-btn" onclick="toggleRole()" style="background: #0066cc; margin-right: 0.5rem;">Alternar Perfil</button>
+            <button class="logout-btn" onclick="resetData()" style="background: #ff9800; margin-right: 0.5rem;">Reset Dados</button>
+            <button class="logout-btn" onclick="logout()">Sair</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="sidebar">
+            <h2>Administração</h2>
+            <div class="menu-item active" onclick="showSection('usuarios')">
+                <i>👥</i> Cadastro de Usuários
+            </div>
+            <div class="menu-item" onclick="showSection('areas')">
+                <i>🏢</i> Área
+            </div>
+            <div class="menu-item" onclick="showSection('assuntos')">
+                <i>📋</i> Assunto
+            </div>
+                         <div class="menu-item" onclick="showSection('tipos')">
+                 <i>📄</i> Tipo de Documento
+             </div>
+             <div class="menu-item" onclick="showSection('recuperacao')">
+                 <i>🔑</i> Recuperação de Senha
+             </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="content-header">
+                <h1>Cadastro de Usuários</h1>
+                <p>Gerencie os usuários do sistema</p>
+            </div>
+            
+            <div class="content-area">
+                <!-- Seção Cadastro de Usuários -->
+                <div id="usuarios" class="form-section active">
+                    <form id="userForm">
+                        <div class="form-group">
+                            <label for="userName">Nome Completo</label>
+                            <input type="text" id="userName" name="userName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="userEmail">E-mail</label>
+                            <input type="email" id="userEmail" name="userEmail" required>
+                        </div>
+                                                 <div class="form-group">
+                             <label for="userPassword">Senha</label>
+                             <input type="password" id="userPassword" name="userPassword" required>
+                         </div>
+                         <div class="form-group">
+                             <label class="checkbox-label">
+                                 <input type="checkbox" id="senhaProvisoria" name="senhaProvisoria">
+                                 Senha Provisória (para recuperação)
+                             </label>
+                         </div>
+                        <div class="form-group">
+                            <label>Perfis de Acesso</label>
+                            <div class="checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="userRoles" value="admin"> Administrador
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="userRoles" value="user"> Usuário
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="userRoles" value="viewer"> Visualizador
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="userArea">Área</label>
+                            <select id="userArea" name="userArea" required>
+                                <option value="">Selecione uma área</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn">Cadastrar Usuário</button>
+                    </form>
+                    
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>E-mail</th>
+                                <th>Perfil</th>
+                                <th>Área</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userTableBody">
+                            <tr>
+                                <td>João Silva</td>
+                                <td>joao.silva@prodesp.sp.gov.br</td>
+                                <td>Administrador</td>
+                                <td>TI</td>
+                                <td>
+                                    <button class="action-btn">Editar</button>
+                                    <button class="action-btn delete">Excluir</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Seção Área -->
+                <div id="areas" class="form-section">
+                    <form id="areaForm">
+                        <div class="form-group">
+                            <label for="areaName">Nome da Área</label>
+                            <input type="text" id="areaName" name="areaName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="areaDescription">Descrição</label>
+                            <textarea id="areaDescription" name="areaDescription" rows="3"></textarea>
+                        </div>
+                        <button type="submit" class="btn">Cadastrar Área</button>
+                    </form>
+                    
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Descrição</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="areaTableBody">
+                            <tr>
+                                <td>Tecnologia da Informação</td>
+                                <td>Departamento de TI</td>
+                                <td>
+                                    <button class="action-btn">Editar</button>
+                                    <button class="action-btn delete">Excluir</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Seção Assunto -->
+                <div id="assuntos" class="form-section">
+                    <form id="assuntoForm">
+                        <div class="form-group">
+                            <label for="assuntoName">Nome do Assunto</label>
+                            <input type="text" id="assuntoName" name="assuntoName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="assuntoArea">Área Relacionada</label>
+                            <select id="assuntoArea" name="assuntoArea" required>
+                                <option value="">Selecione uma área</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn">Cadastrar Assunto</button>
+                    </form>
+                    
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Área</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assuntoTableBody">
+                            <tr>
+                                <td>Manutenção de Sistemas</td>
+                                <td>TI</td>
+                                <td>
+                                    <button class="action-btn">Editar</button>
+                                    <button class="action-btn delete">Excluir</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Seção Tipo de Documento -->
+                <div id="tipos" class="form-section">
+                    <form id="tipoForm">
+                        <div class="form-group">
+                            <label for="tipoName">Nome do Tipo</label>
+                            <input type="text" id="tipoName" name="tipoName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="tipoDescription">Descrição</label>
+                            <textarea id="tipoDescription" name="tipoDescription" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="tipoExtensions">Extensões Permitidas</label>
+                            <input type="text" id="tipoExtensions" name="tipoExtensions" placeholder="Ex: .pdf, .doc, .docx">
+                        </div>
+                        <button type="submit" class="btn">Cadastrar Tipo</button>
+                    </form>
+                    
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Descrição</th>
+                                <th>Extensões</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tipoTableBody">
+                            <tr>
+                                <td>Documento Oficial</td>
+                                <td>Documentos oficiais da empresa</td>
+                                <td>.pdf, .doc, .docx</td>
+                                <td>
+                                    <button class="action-btn">Editar</button>
+                                    <button class="action-btn delete">Excluir</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                                         </table>
+                 </div>
+                 
+                 <!-- Seção Recuperação de Senha -->
+                 <div id="recuperacao" class="form-section">
+                     <div class="content-header">
+                         <h3>Solicitações de Recuperação de Senha</h3>
+                         <p>Gerencie as solicitações de recuperação de senha dos usuários</p>
+                     </div>
+                     
+                     <table class="table">
+                         <thead>
+                             <tr>
+                                 <th>Usuário</th>
+                                 <th>E-mail</th>
+                                 <th>Data Solicitação</th>
+                                 <th>Status</th>
+                                 <th>Ações</th>
+                             </tr>
+                         </thead>
+                         <tbody id="recuperacaoTableBody">
+                             <tr>
+                                 <td colspan="5">Carregando solicitações...</td>
+                             </tr>
+                         </tbody>
+                     </table>
+                 </div>
+             </div>
+         </div>
+     </div>
+
+    <!-- Supabase SDK e cliente -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabaseClient.js"></script>
+
+    <script>
+        // Estados de edição
+        let editingUserId = null;
+        let editingAreaId = null;
+        let editingAssuntoId = null;
+        let editingTipoId = null;
+
+        function setButtonEditing(formEl, isEditing, defaultText, editingText) {
+            const submitBtn = formEl.querySelector('button[type="submit"]');
+            if (!submitBtn) return;
+            submitBtn.textContent = isEditing ? editingText : defaultText;
+        }
+
+        function ensureCancelButton(formEl, onCancel) {
+            let cancelBtn = formEl.querySelector('.btn-cancel-edit');
+            if (!cancelBtn) {
+                cancelBtn = document.createElement('button');
+                cancelBtn.type = 'button';
+                cancelBtn.className = 'btn btn-secondary btn-cancel-edit';
+                cancelBtn.style.marginLeft = '8px';
+                cancelBtn.textContent = 'Cancelar';
+                formEl.querySelector('button[type="submit"]').after(cancelBtn);
+            }
+            cancelBtn.onclick = onCancel;
+            cancelBtn.style.display = 'inline-block';
+        }
+
+        function hideCancelButton(formEl) {
+            const cancelBtn = formEl.querySelector('.btn-cancel-edit');
+            if (cancelBtn) cancelBtn.style.display = 'none';
+        }
+        async function syncProfileFromSupabase() {
+            try {
+                const stored = localStorage.getItem('usuario_logado');
+                if (!stored || !window.supabaseClient) return;
+                const user = JSON.parse(stored);
+                if (!user?.id) return;
+                
+                // Busca dados do profile
+                const { data: profileData } = await window.supabaseClient
+                    .from('profiles')
+                    .select('nome, area_id')
+                    .eq('user_id', user.id)
+                    .maybeSingle();
+                
+                // Busca roles do usuário
+                const { data: rolesData } = await window.supabaseClient
+                    .from('user_roles')
+                    .select('role')
+                    .eq('user_id', user.id);
+                
+                const roles = (rolesData || []).map(r => r.role);
+                const updated = {
+                    ...user,
+                    roles: roles.length > 0 ? roles : ['user'],
+                    perfil: roles.some(r => r === 'admin') ? 'admin' : (roles[0] || 'user'),
+                    nome: profileData?.nome || user.nome,
+                    areaId: profileData?.area_id ?? user.areaId
+                };
+                localStorage.setItem('usuario_logado', JSON.stringify(updated));
+            } catch (error) {
+                console.error('Erro ao sincronizar perfil:', error);
+            }
+        }
+        // Dados iniciais para demonstração
+        const initialData = {
+            usuarios: [
+                {
+                    id: 1,
+                    nome: 'João Silva',
+                    email: 'joao.silva@prodesp.sp.gov.br',
+                    senha: '123456',
+                    perfil: 'Administrador',
+                    area: 'TI'
+                }
+            ],
+            areas: [
+                {
+                    id: 1,
+                    nome: 'Tecnologia da Informação',
+                    descricao: 'Departamento de TI'
+                }
+            ],
+            assuntos: [
+                {
+                    id: 1,
+                    nome: 'Manutenção de Sistemas',
+                    area: 'TI'
+                }
+            ],
+            tipos: [
+                {
+                    id: 1,
+                    nome: 'Documento Oficial',
+                    descricao: 'Documentos oficiais da empresa',
+                    extensoes: '.pdf, .doc, .docx'
+                }
+            ]
+        };
+
+        // Funções para localStorage
+        function saveToLocalStorage(key, data) {
+            localStorage.setItem(key, JSON.stringify(data));
+        }
+
+        function loadFromLocalStorage(key) {
+            const data = localStorage.getItem(key);
+            return data ? JSON.parse(data) : [];
+        }
+
+        async function initializeData() {
+            // Verifica se já existem dados no localStorage
+            const hasData = localStorage.getItem('ged_usuarios');
+            
+            if (!hasData) {
+                // Salva dados iniciais
+                saveToLocalStorage('ged_usuarios', initialData.usuarios);
+                saveToLocalStorage('ged_assuntos', initialData.assuntos);
+                saveToLocalStorage('ged_tipos', initialData.tipos);
+            }
+            
+            // Carrega e exibe os dados básicos (exceto áreas/assuntos/tipos que vêm do Supabase)
+            loadAndDisplayData();
+            await loadAreasFromSupabase();
+            await loadAssuntosFromSupabase();
+            await loadTiposFromSupabase();
+        }
+
+        function loadAndDisplayData() {
+            // Carrega dados do localStorage
+            const usuarios = loadFromLocalStorage('ged_usuarios');
+            const assuntos = loadFromLocalStorage('ged_assuntos');
+            const tipos = loadFromLocalStorage('ged_tipos');
+
+            // Atualiza tabelas
+            updateUserTable(usuarios);
+            // Assuntos e Tipos agora vêm do Supabase
+        }
+
+        // ===== Integração Áreas com Supabase =====
+        async function loadAreasFromSupabase() {
+            if (!window.supabaseClient) {
+                console.warn('Supabase client não disponível.');
+                return;
+            }
+            const { data, error } = await window.supabaseClient
+                .from('areas')
+                .select('id, nome, descricao')
+                .order('nome', { ascending: true });
+            if (error) {
+                console.error('Erro ao carregar áreas do Supabase:', error);
+                return;
+            }
+            updateAreaTable(data || []);
+            updateAreaSelects(data || []);
+        }
+
+        // ===== Integração Assuntos com Supabase =====
+        async function loadAssuntosFromSupabase() {
+            if (!window.supabaseClient) {
+                console.warn('Supabase client não disponível.');
+                return;
+            }
+            const { data, error } = await window.supabaseClient
+                .from('assuntos')
+                .select('id, nome, area_id, areas:area_id ( nome )')
+                .order('nome', { ascending: true });
+            if (error) {
+                console.error('Erro ao carregar assuntos do Supabase:', error);
+                return;
+            }
+            const assuntos = (data || []).map(a => ({
+                id: a.id,
+                nome: a.nome,
+                areaNome: a.areas?.nome || '-'
+            }));
+            updateAssuntoTable(assuntos);
+        }
+
+        // ===== Integração Tipos de Documento com Supabase =====
+        async function loadTiposFromSupabase() {
+            if (!window.supabaseClient) {
+                console.warn('Supabase client não disponível.');
+                return;
+            }
+            const { data, error } = await window.supabaseClient
+                .from('tipos_documento')
+                .select('id, nome, descricao, extensoes')
+                .order('nome', { ascending: true });
+            if (error) {
+                console.error('Erro ao carregar tipos de documento:', error);
+                return;
+            }
+            updateTipoTable(data || []);
+        }
+
+        function updateAreaSelects(areas) {
+            // Atualiza select de área no cadastro de usuários
+            const userAreaSelect = document.getElementById('userArea');
+            const assuntoAreaSelect = document.getElementById('assuntoArea');
+            
+            // Limpa as opções existentes (exceto a primeira)
+            userAreaSelect.innerHTML = '<option value="">Selecione uma área</option>';
+            assuntoAreaSelect.innerHTML = '<option value="">Selecione uma área</option>';
+            
+            // Adiciona as áreas cadastradas
+            areas.forEach(area => {
+                const userOption = `<option value="${area.id}">${area.nome}</option>`;
+                const assuntoOption = `<option value="${area.id}">${area.nome}</option>`;
+                
+                userAreaSelect.innerHTML += userOption;
+                assuntoAreaSelect.innerHTML += assuntoOption;
+            });
+        }
+
+        function updateUserTable(usuarios) {
+            const tbody = document.getElementById('userTableBody');
+            tbody.innerHTML = '';
+            
+            usuarios.forEach(user => {
+                const row = `
+                    <tr>
+                        <td>${user.nome}</td>
+                        <td>${user.email}</td>
+                        <td>${user.perfil}</td>
+                        <td>${user.area}</td>
+                        <td>
+                            <button class="action-btn" onclick="editUser('${user.id}')">Editar</button>
+                            <button class="action-btn delete" onclick="deleteUser('${user.id}')">Excluir</button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+        // Carrega usuários do Supabase (profiles + área + roles)
+        async function loadUsersFromSupabase() {
+            if (!window.supabaseClient) return;
+            
+            // Busca usuários
+            const { data, error } = await window.supabaseClient
+                .from('profiles')
+                .select('user_id, nome, email, area_id')
+                .order('nome', { ascending: true });
+            if (error) {
+                console.error('Erro ao carregar usuários:', error);
+                return;
+            }
+            
+            // Busca áreas separadamente
+            const { data: areasData } = await window.supabaseClient
+                .from('areas')
+                .select('id, nome');
+            const areasMap = {};
+            (areasData || []).forEach(area => {
+                areasMap[area.id] = area.nome;
+            });
+            
+            // Busca roles para cada usuário
+            const usuarios = await Promise.all((data || []).map(async (u) => {
+                const { data: rolesData } = await window.supabaseClient
+                    .from('user_roles')
+                    .select('role')
+                    .eq('user_id', u.user_id);
+                
+                const roles = (rolesData || []).map(r => r.role);
+                const perfilText = roles.length > 0 ? roles.join(', ') : '-';
+                
+                return {
+                    id: u.user_id,
+                    nome: u.nome || '-',
+                    email: u.email || '-',
+                    perfil: perfilText,
+                    area: areasMap[u.area_id] || '-',
+                    roles: roles
+                };
+            }));
+            
+            updateUserTable(usuarios);
+        }
+
+        function updateAreaTable(areas) {
+            const tbody = document.getElementById('areaTableBody');
+            tbody.innerHTML = '';
+            
+            areas.forEach(area => {
+                const row = `
+                    <tr>
+                        <td>${area.nome}</td>
+                        <td>${area.descricao}</td>
+                        <td>
+                            <button class="action-btn" onclick="editArea(${area.id})">Editar</button>
+                            <button class="action-btn delete" onclick="deleteArea(${area.id})">Excluir</button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+        function updateAssuntoTable(assuntos) {
+            const tbody = document.getElementById('assuntoTableBody');
+            tbody.innerHTML = '';
+            
+            assuntos.forEach(assunto => {
+                const row = `
+                    <tr>
+                        <td>${assunto.nome}</td>
+                        <td>${assunto.areaNome || assunto.area || '-'}</td>
+                        <td>
+                            <button class="action-btn" onclick="editAssunto(${assunto.id})">Editar</button>
+                            <button class="action-btn delete" onclick="deleteAssunto(${assunto.id})">Excluir</button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+        function updateTipoTable(tipos) {
+            const tbody = document.getElementById('tipoTableBody');
+            tbody.innerHTML = '';
+            
+            tipos.forEach(tipo => {
+                const row = `
+                    <tr>
+                        <td>${tipo.nome}</td>
+                        <td>${tipo.descricao || ''}</td>
+                        <td>${tipo.extensoes || ''}</td>
+                        <td>
+                            <button class="action-btn" onclick="editTipo(${tipo.id})">Editar</button>
+                            <button class="action-btn delete" onclick="deleteTipo(${tipo.id})">Excluir</button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+        // Funções de navegação
+        function showSection(sectionId) {
+            // Remove active class from all menu items and sections
+            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+            document.querySelectorAll('.form-section').forEach(section => section.classList.remove('active'));
+            
+            // Add active class to clicked menu item
+            event.target.classList.add('active');
+            
+            // Show selected section
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Update content header
+            updateContentHeader(sectionId);
+        }
+        
+        function updateContentHeader(sectionId) {
+            const header = document.querySelector('.content-header');
+                         const titles = {
+                 'usuarios': { title: 'Cadastro de Usuários', description: 'Gerencie os usuários do sistema' },
+                 'areas': { title: 'Áreas', description: 'Gerencie as áreas da empresa' },
+                 'assuntos': { title: 'Assuntos', description: 'Gerencie os assuntos dos documentos' },
+                 'tipos': { title: 'Tipos de Documento', description: 'Gerencie os tipos de documento permitidos' },
+                 'recuperacao': { title: 'Recuperação de Senha', description: 'Gerencie as solicitações de recuperação de senha' }
+             };
+            
+            header.innerHTML = `
+                <h1>${titles[sectionId].title}</h1>
+                <p>${titles[sectionId].description}</p>
+            `;
+        }
+        
+        function logout() {
+            if (confirm('Deseja realmente sair do sistema?')) {
+                window.location.href = 'index.html';
+            }
+        }
+
+        // Alternar Perfil (somente se o usuário possuir perfil admin no Supabase)
+        function toggleRole() {
+            (async () => {
+                const user = JSON.parse(localStorage.getItem('usuario_logado') || '{}');
+                // Sincroniza papel antes de alternar
+                try {
+                    if (window.supabaseClient && user?.id) {
+                        // Busca dados do profile
+                        const { data: profileData } = await window.supabaseClient
+                            .from('profiles')
+                            .select('nome, area_id')
+                            .eq('user_id', user.id)
+                            .maybeSingle();
+                        
+                        // Busca roles do usuário
+                        const { data: rolesData } = await window.supabaseClient
+                            .from('user_roles')
+                            .select('role')
+                            .eq('user_id', user.id);
+                        
+                        const roles = (rolesData || []).map(r => r.role);
+                        user.roles = roles.length > 0 ? roles : ['user'];
+                        user.perfil = roles.some(r => r === 'admin') ? 'admin' : (roles[0] || 'user');
+                        user.nome = profileData?.nome || user.nome;
+                        user.areaId = profileData?.area_id ?? user.areaId;
+                        localStorage.setItem('usuario_logado', JSON.stringify(user));
+                    }
+                } catch (error) {
+                    console.error('Erro ao sincronizar perfil:', error);
+                }
+                
+                const hasAdmin = user?.roles?.includes('admin') || user?.perfil === 'admin';
+                if (!hasAdmin) {
+                    alert('Você não possui permissão de administrador.');
+                    return;
+                }
+                const active = localStorage.getItem('active_role') || 'user';
+                const next = active === 'admin' ? 'user' : 'admin';
+                localStorage.setItem('active_role', next);
+                // Redireciona conforme o perfil ativo
+                if (next === 'admin') {
+                    window.location.href = 'admin.html';
+                } else {
+                    window.location.href = 'dashboard.html';
+                }
+            })();
+        }
+
+        // Função para resetar dados (debug)
+        function resetData() {
+            if (confirm('Deseja realmente resetar todos os dados? Isso irá limpar o localStorage e recarregar os dados iniciais.')) {
+                localStorage.clear();
+                initializeData();
+                alert('Dados resetados com sucesso!');
+            }
+        }
+
+        // Funções de CRUD para Usuários (Supabase Auth + profiles + user_roles)
+        async function addUser(userData) {
+            if (!window.supabaseClient) return;
+            // 1) Cria o usuário no Auth
+            const { data, error } = await window.supabaseClient.auth.signUp({
+                email: userData.email,
+                password: userData.senha,
+                options: {
+                    emailRedirectTo: window.location.origin + '/index.html'
+                }
+            });
+            if (error) {
+                alert('Erro ao criar usuário no Auth: ' + (error.message || 'Erro desconhecido'));
+                return;
+            }
+
+            const createdUser = data?.user;
+
+            // 2) Insere/atualiza o profile
+            if (createdUser && createdUser.id) {
+                                    const { error: upsertError } = await window.supabaseClient
+                        .from('profiles')
+                        .upsert({
+                            user_id: createdUser.id,
+                            email: userData.email,
+                            nome: userData.nome,
+                            area_id: userData.area_id,
+                            primeiro_acesso: true
+                        }, { onConflict: 'user_id' });
+                if (upsertError) {
+                    console.warn('Usuário criado, mas falhou ao salvar profile:', upsertError);
+                } else {
+                    // 3) Insere os roles do usuário
+                    if (userData.roles && userData.roles.length > 0) {
+                        const rolesToInsert = userData.roles.map(role => ({
+                            user_id: createdUser.id,
+                            role: role
+                        }));
+                        
+                        const { error: rolesError } = await window.supabaseClient
+                            .from('user_roles')
+                            .insert(rolesToInsert);
+                        if (rolesError) {
+                            console.warn('Usuário criado, mas falhou ao salvar roles:', rolesError);
+                        }
+                    }
+                }
+            } else {
+                alert('Usuário criado, aguarde confirmação por e-mail (se habilitada). O perfil será criado no primeiro acesso.');
+            }
+
+            await loadUsersFromSupabase();
+        }
+
+        function deleteUser(id) {
+            if (confirm('Deseja realmente excluir este usuário?')) {
+                const usuarios = loadFromLocalStorage('ged_usuarios');
+                const filtered = usuarios.filter(user => user.id !== id);
+                saveToLocalStorage('ged_usuarios', filtered);
+                updateUserTable(filtered);
+            }
+        }
+
+        async function editUser(id) {
+            if (!window.supabaseClient) return;
+            const form = document.getElementById('userForm');
+            try {
+                const { data, error } = await window.supabaseClient
+                    .from('profiles')
+                    .select('user_id, nome, email, area_id')
+                    .eq('user_id', id)
+                    .maybeSingle();
+                if (error) {
+                    alert('Erro ao carregar usuário: ' + (error.message || 'Erro desconhecido'));
+                    return;
+                }
+                if (!data) return;
+                
+                // Busca roles do usuário
+                const { data: rolesData } = await window.supabaseClient
+                    .from('user_roles')
+                    .select('role')
+                    .eq('user_id', id);
+                
+                document.getElementById('userName').value = data.nome || '';
+                document.getElementById('userEmail').value = data.email || '';
+                document.getElementById('userArea').value = String(data.area_id || '');
+                
+                // Limpa e marca os checkboxes dos roles
+                const checkboxes = document.querySelectorAll('input[name="userRoles"]');
+                checkboxes.forEach(cb => cb.checked = false);
+                
+                const userRoles = (rolesData || []).map(r => r.role);
+                checkboxes.forEach(cb => {
+                    if (userRoles.includes(cb.value)) {
+                        cb.checked = true;
+                    }
+                });
+                
+                document.getElementById('userEmail').disabled = true;
+                document.getElementById('userPassword').disabled = true;
+                document.getElementById('userPassword').value = '';
+                editingUserId = data.user_id;
+                setButtonEditing(form, true, 'Cadastrar Usuário', 'Salvar Alterações');
+                ensureCancelButton(form, () => {
+                    editingUserId = null;
+                    form.reset();
+                    document.getElementById('userEmail').disabled = false;
+                    document.getElementById('userPassword').disabled = false;
+                    setButtonEditing(form, false, 'Cadastrar Usuário', 'Salvar Alterações');
+                    hideCancelButton(form);
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        // Funções de CRUD para Áreas
+        async function addArea(areaData) {
+            if (!window.supabaseClient) return;
+            const { error } = await window.supabaseClient
+                .from('areas')
+                .insert({ nome: areaData.nome, descricao: areaData.descricao });
+            if (error) {
+                alert('Erro ao cadastrar área: ' + (error.message || 'Erro desconhecido'));
+                return;
+            }
+            await loadAreasFromSupabase();
+        }
+
+        async function deleteArea(id) {
+            if (!confirm('Deseja realmente excluir esta área?')) return;
+            if (!window.supabaseClient) return;
+            const { error } = await window.supabaseClient
+                .from('areas')
+                .delete()
+                .eq('id', id);
+            if (error) {
+                alert('Erro ao excluir área: ' + (error.message || 'Erro desconhecido'));
+                return;
+            }
+            await loadAreasFromSupabase();
+        }
+
+        async function editArea(id) {
+            if (!window.supabaseClient) return;
+            const form = document.getElementById('areaForm');
+            const { data, error } = await window.supabaseClient
+                .from('areas')
+                .select('id, nome, descricao')
+                .eq('id', id)
+                .maybeSingle();
+            if (error) {
+                alert('Erro ao carregar área: ' + (error.message || 'Erro desconhecido'));
+                return;
+            }
+            if (!data) return;
+            document.getElementById('areaName').value = data.nome || '';
+            document.getElementById('areaDescription').value = data.descricao || '';
+            editingAreaId = data.id;
+            setButtonEditing(form, true, 'Cadastrar Área', 'Salvar Alterações');
+            ensureCancelButton(form, () => {
+                editingAreaId = null;
+                form.reset();
+                setButtonEditing(form, false, 'Cadastrar Área', 'Salvar Alterações');
+                hideCancelButton(form);
+            });
+        }
+
+        // Funções de CRUD para Assuntos
+        async function addAssunto(assuntoData) {
+            if (!window.supabaseClient) return;
+            const { error } = await window.supabaseClient
+                .from('assuntos')
+                .insert({ nome: assuntoData.nome, area_id: assuntoData.area_id });
+            if (error) {
+                alert('Erro ao cadastrar assunto: ' + (error.message || 'Erro desconhecido'));
+                return;
+            }
+            await loadAssuntosFromSupabase();
+        }
+
+        async function deleteAssunto(id) {
+            if (!confirm('Deseja realmente excluir este assunto?')) return;
+            if (!window.supabaseClient) return;
+            const { error } = await window.supabaseClient
+                .from('assuntos')
+                .delete()
+                .eq('id', id);
+            if (error) {
+                alert('Erro ao excluir assunto: ' + (error.message || 'Erro desconhecido'));
+                return;
+            }
+            await loadAssuntosFromSupabase();
+        }
+
+        async function editAssunto(id) {
+            if (!window.supabaseClient) return;
+            const form = document.getElementById('assuntoForm');
+            const { data, error } = await window.supabaseClient
+                .from('assuntos')
+                .select('id, nome, area_id')
+                .eq('id', id)
+                .maybeSingle();
+            if (error) {
+                alert('Erro ao carregar assunto: ' + (error.message || 'Erro desconhecido'));
+                return;
+            }
+            if (!data) return;
+            document.getElementById('assuntoName').value = data.nome || '';
+            document.getElementById('assuntoArea').value = String(data.area_id || '');
+            editingAssuntoId = data.id;
+            setButtonEditing(form, true, 'Cadastrar Assunto', 'Salvar Alterações');
+            ensureCancelButton(form, () => {
+                editingAssuntoId = null;
+                form.reset();
+                setButtonEditing(form, false, 'Cadastrar Assunto', 'Salvar Alterações');
+                hideCancelButton(form);
+            });
+        }
+
+        // Funções de CRUD para Tipos
+        async function addTipo(tipoData) {
+            if (!window.supabaseClient) return;
+            const { error } = await window.supabaseClient
+                .from('tipos_documento')
+                .insert({ nome: tipoData.nome, descricao: tipoData.descricao, extensoes: tipoData.extensoes });
+            if (error) {
+                alert('Erro ao cadastrar tipo: ' + (error.message || 'Erro desconhecido'));
+                return;
+            }
+            await loadTiposFromSupabase();
+        }
+
+        async function deleteTipo(id) {
+            if (!confirm('Deseja realmente excluir este tipo?')) return;
+            if (!window.supabaseClient) return;
+            const { error } = await window.supabaseClient
+                .from('tipos_documento')
+                .delete()
+                .eq('id', id);
+            if (error) {
+                alert('Erro ao excluir tipo: ' + (error.message || 'Erro desconhecido'));
+                return;
+            }
+            await loadTiposFromSupabase();
+        }
+
+        async function editTipo(id) {
+            if (!window.supabaseClient) return;
+            const form = document.getElementById('tipoForm');
+            const { data, error } = await window.supabaseClient
+                .from('tipos_documento')
+                .select('id, nome, descricao, extensoes')
+                .eq('id', id)
+                .maybeSingle();
+            if (error) {
+                alert('Erro ao carregar tipo: ' + (error.message || 'Erro desconhecido'));
+                return;
+            }
+            if (!data) return;
+            document.getElementById('tipoName').value = data.nome || '';
+            document.getElementById('tipoDescription').value = data.descricao || '';
+            document.getElementById('tipoExtensions').value = data.extensoes || '';
+            editingTipoId = data.id;
+            setButtonEditing(form, true, 'Cadastrar Tipo', 'Salvar Alterações');
+            ensureCancelButton(form, () => {
+                editingTipoId = null;
+                form.reset();
+                setButtonEditing(form, false, 'Cadastrar Tipo', 'Salvar Alterações');
+                hideCancelButton(form);
+            });
+        }
+        
+        // Form submissions
+        document.getElementById('userForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const areaId = document.getElementById('userArea').value;
+            if (!areaId) {
+                alert('Selecione uma área.');
+                return;
+            }
+
+            // Coleta os roles selecionados
+            const selectedRoles = [];
+            document.querySelectorAll('input[name="userRoles"]:checked').forEach(cb => {
+                selectedRoles.push(cb.value);
+            });
+
+            if (selectedRoles.length === 0) {
+                alert('Selecione pelo menos um perfil.');
+                return;
+            }
+
+            const formData = {
+                nome: document.getElementById('userName').value,
+                email: document.getElementById('userEmail').value,
+                senha: document.getElementById('userPassword').value,
+                roles: selectedRoles,
+                area_id: Number(areaId)
+            };
+
+            if (editingUserId) {
+                // Atualiza profile (mantém primeiro_acesso inalterado)
+                const { error: profileError } = await window.supabaseClient
+                    .from('profiles')
+                    .update({ nome: formData.nome, area_id: formData.area_id })
+                    .eq('user_id', editingUserId);
+                if (profileError) {
+                    alert('Erro ao atualizar usuário: ' + (profileError.message || 'Erro desconhecido'));
+                    return;
+                }
+
+                // Remove roles existentes e insere os novos
+                await window.supabaseClient
+                    .from('user_roles')
+                    .delete()
+                    .eq('user_id', editingUserId);
+
+                if (formData.roles.length > 0) {
+                    const rolesToInsert = formData.roles.map(role => ({
+                        user_id: editingUserId,
+                        role: role
+                    }));
+                    
+                    const { error: rolesError } = await window.supabaseClient
+                        .from('user_roles')
+                        .insert(rolesToInsert);
+                    if (rolesError) {
+                        alert('Erro ao atualizar perfis: ' + (rolesError.message || 'Erro desconhecido'));
+                        return;
+                    }
+                }
+
+                await loadUsersFromSupabase();
+                editingUserId = null;
+                document.getElementById('userEmail').disabled = false;
+                document.getElementById('userPassword').disabled = false;
+                setButtonEditing(this, false, 'Cadastrar Usuário', 'Salvar Alterações');
+                hideCancelButton(this);
+                alert('Usuário atualizado com sucesso!');
+                this.reset();
+            } else {
+                await addUser(formData);
+                alert('Usuário cadastrado! Verifique se houve e-mail de confirmação, conforme suas configurações.');
+                this.reset();
+            }
+        });
+        
+        document.getElementById('areaForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = {
+                nome: document.getElementById('areaName').value,
+                descricao: document.getElementById('areaDescription').value
+            };
+            if (editingAreaId) {
+                const { error } = await window.supabaseClient
+                    .from('areas')
+                    .update({ nome: formData.nome, descricao: formData.descricao })
+                    .eq('id', editingAreaId);
+                if (error) {
+                    alert('Erro ao atualizar área: ' + (error.message || 'Erro desconhecido'));
+                    return;
+                }
+                await loadAreasFromSupabase();
+                editingAreaId = null;
+                setButtonEditing(this, false, 'Cadastrar Área', 'Salvar Alterações');
+                hideCancelButton(this);
+                alert('Área atualizada com sucesso!');
+                this.reset();
+            } else {
+                await addArea(formData);
+                alert('Área cadastrada com sucesso!');
+                this.reset();
+            }
+        });
+        
+        document.getElementById('assuntoForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const areaId = document.getElementById('assuntoArea').value;
+            if (!areaId) {
+                alert('Selecione uma área.');
+                return;
+            }
+            const formData = {
+                nome: document.getElementById('assuntoName').value,
+                area_id: Number(areaId)
+            };
+            if (editingAssuntoId) {
+                const { error } = await window.supabaseClient
+                    .from('assuntos')
+                    .update({ nome: formData.nome, area_id: formData.area_id })
+                    .eq('id', editingAssuntoId);
+                if (error) {
+                    alert('Erro ao atualizar assunto: ' + (error.message || 'Erro desconhecido'));
+                    return;
+                }
+                await loadAssuntosFromSupabase();
+                editingAssuntoId = null;
+                setButtonEditing(this, false, 'Cadastrar Assunto', 'Salvar Alterações');
+                hideCancelButton(this);
+                alert('Assunto atualizado com sucesso!');
+                this.reset();
+            } else {
+                await addAssunto(formData);
+                alert('Assunto cadastrado com sucesso!');
+                this.reset();
+            }
+        });
+        
+        document.getElementById('tipoForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = {
+                nome: document.getElementById('tipoName').value,
+                descricao: document.getElementById('tipoDescription').value,
+                extensoes: document.getElementById('tipoExtensions').value
+            };
+            if (editingTipoId) {
+                const { error } = await window.supabaseClient
+                    .from('tipos_documento')
+                    .update({ nome: formData.nome, descricao: formData.descricao, extensoes: formData.extensoes })
+                    .eq('id', editingTipoId);
+                if (error) {
+                    alert('Erro ao atualizar tipo: ' + (error.message || 'Erro desconhecido'));
+                    return;
+                }
+                await loadTiposFromSupabase();
+                editingTipoId = null;
+                setButtonEditing(this, false, 'Cadastrar Tipo', 'Salvar Alterações');
+                hideCancelButton(this);
+                alert('Tipo de documento atualizado com sucesso!');
+                this.reset();
+            } else {
+                await addTipo(formData);
+                alert('Tipo de documento cadastrado com sucesso!');
+                this.reset();
+            }
+        });
+
+                 // Funções para gerenciar solicitações de recuperação
+         async function loadSolicitacoesRecuperacao() {
+             if (!window.supabaseClient) return;
+             
+             const { data, error } = await window.supabaseClient
+                 .from('solicitacoes_recuperacao')
+                 .select('*')
+                 .order('data_solicitacao', { ascending: false });
+             
+             if (error) {
+                 console.error('Erro ao carregar solicitações:', error);
+                 return;
+             }
+             
+             updateRecuperacaoTable(data || []);
+         }
+
+         function updateRecuperacaoTable(solicitacoes) {
+             const tbody = document.getElementById('recuperacaoTableBody');
+             tbody.innerHTML = '';
+             
+             if (solicitacoes.length === 0) {
+                 tbody.innerHTML = '<tr><td colspan="5">Nenhuma solicitação encontrada</td></tr>';
+                 return;
+             }
+             
+             solicitacoes.forEach(solicitacao => {
+                 const data = new Date(solicitacao.data_solicitacao).toLocaleDateString('pt-BR');
+                 const statusClass = solicitacao.status === 'pendente' ? 'status-pendente' : 
+                                   solicitacao.status === 'aprovada' ? 'status-aprovada' : 'status-rejeitada';
+                 
+                 const row = `
+                     <tr>
+                         <td>${solicitacao.nome || '-'}</td>
+                         <td>${solicitacao.email}</td>
+                         <td>${data}</td>
+                         <td><span class="${statusClass}">${solicitacao.status}</span></td>
+                         <td>
+                             ${solicitacao.status === 'pendente' ? `
+                                 <button class="action-btn" onclick="aprovarRecuperacao('${solicitacao.user_id}', '${solicitacao.email}')">Aprovar</button>
+                                 <button class="action-btn delete" onclick="rejeitarRecuperacao('${solicitacao.id}')">Rejeitar</button>
+                             ` : '-'}
+                         </td>
+                     </tr>
+                 `;
+                 tbody.innerHTML += row;
+             });
+         }
+
+                   async function aprovarRecuperacao(userId, email) {
+              const novaSenha = prompt(`Digite a nova senha provisória para ${email}:`);
+              if (!novaSenha) return;
+              
+              try {
+                  // Usar função RPC para alterar a senha
+                  const { data: success, error: rpcError } = await window.supabaseClient
+                      .rpc('alterar_senha_usuario_admin', {
+                          p_user_id: userId,
+                          p_nova_senha: novaSenha
+                      });
+                  
+                  if (rpcError) {
+                      console.error('Erro na função RPC:', rpcError);
+                      alert('Erro ao alterar senha: ' + rpcError.message);
+                      return;
+                  }
+                  
+                  if (!success) {
+                      alert('Erro ao alterar senha. Verifique se você tem permissões de administrador.');
+                      return;
+                  }
+                  
+                  // Atualizar status da solicitação
+                  await window.supabaseClient
+                      .from('solicitacoes_recuperacao')
+                      .update({ 
+                          status: 'aprovada',
+                          admin_responsavel: JSON.parse(localStorage.getItem('usuario_logado')).id,
+                          data_resolucao: new Date().toISOString()
+                      })
+                      .eq('user_id', userId);
+                  
+                  alert(`Senha provisória definida com sucesso!\n\nInforme ao usuário ${email}:\n\n1. Nova senha provisória: ${novaSenha}\n2. Faça login com esta senha\n3. O sistema irá redirecioná-lo para trocar a senha\n4. Defina uma nova senha segura`);
+                  await loadSolicitacoesRecuperacao();
+                  
+              } catch (error) {
+                  console.error('Erro ao aprovar recuperação:', error);
+                  alert('Erro ao processar solicitação: ' + error.message);
+              }
+          }
+
+         async function rejeitarRecuperacao(solicitacaoId) {
+             if (!confirm('Deseja realmente rejeitar esta solicitação?')) return;
+             
+             try {
+                 await window.supabaseClient
+                     .from('solicitacoes_recuperacao')
+                     .update({ 
+                         status: 'rejeitada',
+                         admin_responsavel: JSON.parse(localStorage.getItem('usuario_logado')).id,
+                         data_resolucao: new Date().toISOString()
+                     })
+                     .eq('id', solicitacaoId);
+                 
+                 alert('Solicitação rejeitada com sucesso.');
+                 await loadSolicitacoesRecuperacao();
+                 
+             } catch (error) {
+                 console.error('Erro ao rejeitar solicitação:', error);
+                 alert('Erro ao processar solicitação.');
+             }
+         }
+
+         // Inicializa os dados quando a página carrega
+         document.addEventListener('DOMContentLoaded', async function() {
+            // Atualiza perfil do Supabase (garante papel mais recente)
+            await syncProfileFromSupabase();
+            const user = JSON.parse(localStorage.getItem('usuario_logado') || '{}');
+            // Se o perfil ativo não for admin, envia para o dashboard
+            let active = localStorage.getItem('active_role');
+            if (!active) {
+                const hasAdmin = user?.roles?.some(r => r === 'admin') || user?.perfil === 'admin';
+                active = hasAdmin ? 'admin' : 'user';
+                localStorage.setItem('active_role', active);
+            }
+            document.getElementById('currentRole').textContent = active === 'admin' ? 'Administrador' : 'Usuário';
+            if (active !== 'admin') {
+                window.location.href = 'dashboard.html';
+                return;
+            }
+                         initializeData();
+             loadUsersFromSupabase();
+             loadSolicitacoesRecuperacao();
+        });
+    </script>
+</body>
+</html>
