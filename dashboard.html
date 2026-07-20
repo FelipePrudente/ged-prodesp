@@ -196,23 +196,60 @@
             background: #f8f9fa;
         }
 
-        .action-btn {
-            background: #0066cc;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-right: 0.5rem;
-            font-size: 0.9rem;
+        .action-btns {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            flex-wrap: wrap;
         }
 
-        .action-btn.delete {
-            background: #e74c3c;
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            margin: 0;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #e8f1fb;
+            color: #0066cc;
+            transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+        }
+
+        .action-btn svg {
+            width: 16px;
+            height: 16px;
+            pointer-events: none;
         }
 
         .action-btn:hover {
-            opacity: 0.8;
+            background: #0066cc;
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        .action-btn.edit {
+            background: #e6f6f3;
+            color: #0f766e;
+        }
+
+        .action-btn.edit:hover {
+            background: #0f766e;
+            color: #fff;
+        }
+
+        .action-btn.delete {
+            background: #fdecea;
+            color: #e74c3c;
+        }
+
+        .action-btn.delete:hover {
+            background: #e74c3c;
+            color: #fff;
+            opacity: 1;
         }
 
         .file-upload {
@@ -332,6 +369,80 @@
             color: #475569;
             max-width: 420px;
         }
+
+        .edit-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 2100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .edit-modal {
+            background: #fff;
+            border-radius: 10px;
+            width: min(640px, 96vw);
+            max-height: 90vh;
+            overflow: auto;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+            padding: 1.25rem 1.5rem 1.5rem;
+        }
+
+        .edit-modal h2 {
+            margin: 0 0 1rem;
+            color: #003366;
+            font-size: 1.25rem;
+        }
+
+        .edit-modal .form-group {
+            margin-bottom: 0.9rem;
+        }
+
+        .edit-anexos-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            max-height: 160px;
+            overflow: auto;
+        }
+
+        .edit-anexos-list li {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 0.55rem 0.75rem;
+            border-bottom: 1px solid #eee;
+            font-size: 0.92rem;
+        }
+
+        .edit-anexos-list li:last-child {
+            border-bottom: none;
+        }
+
+        .edit-modal-footer {
+            display: flex;
+            gap: 0.6rem;
+            justify-content: flex-end;
+            margin-top: 1.1rem;
+        }
+
+        .edit-modal-footer button {
+            border: none;
+            border-radius: 6px;
+            padding: 10px 16px;
+            cursor: pointer;
+            color: #fff;
+            font-size: 0.95rem;
+        }
+
+        .edit-btn-save { background: #0066cc; }
+        .edit-btn-cancel { background: #64748b; }
 
         .stats-grid {
             display: grid;
@@ -467,13 +578,9 @@
 
         .result-actions {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.35rem;
             align-items: center;
-        }
-
-        .result-actions .action-btn {
-            padding: 6px 12px;
-            font-size: 0.8rem;
+            flex-wrap: wrap;
         }
 
         .highlight {
@@ -759,12 +866,7 @@
                         <td>${doc.assuntoNome || '-'}</td>
                         <td>${new Date(doc.data || doc.created_at).toLocaleDateString('pt-BR')}</td>
                         <td>
-                            <button class="action-btn" onclick="previewDocument('${doc.id}')">Preview</button>
-                            <button class="action-btn" onclick="downloadDocument('${doc.id}')">Download</button>
-                            ${doc.owner === usuarioLogado.id ? 
-                                `<button class=\"action-btn delete\" onclick=\"deleteDocument('${doc.id}')\">Excluir</button>` : 
-                                ''
-                            }
+                            ${documentActionButtons(doc)}
                         </td>
                     </tr>
                 `;
@@ -838,18 +940,7 @@
                             ${highlightedDescricao}
                         </div>
                         <div class="result-actions">
-                            <button class="action-btn" onclick="previewDocument('${doc.id}')">
-                                <i>👁️</i> Preview
-                            </button>
-                            <button class="action-btn" onclick="downloadDocument('${doc.id}')">
-                                <i>⬇️</i> Download
-                            </button>
-                            ${doc.owner === usuarioLogado.id ? 
-                                `<button class=\"action-btn delete\" onclick=\"deleteDocument('${doc.id}')\">\
-                                    <i>🗑️</i> Excluir
-                                </button>` : 
-                                ''
-                            }
+                            ${documentActionButtons(doc)}
                         </div>
                     </div>
                 `;
@@ -971,6 +1062,126 @@
                 .replace(/^_|_$/g, '');
         }
 
+        function canManageDocument(doc) {
+            if (!doc || !usuarioLogado) return false;
+            const isOwner = doc.owner === usuarioLogado.id;
+            const isAdmin = usuarioLogado.roles?.includes('admin') || usuarioLogado.perfil === 'admin';
+            return isOwner || isAdmin;
+        }
+
+        const ICONS = {
+            preview: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+            download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+            edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',
+            trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>'
+        };
+
+        function documentActionButtons(doc) {
+            const manage = canManageDocument(doc)
+                ? `<button type="button" class="action-btn edit" title="Editar" aria-label="Editar" onclick="editDocument('${doc.id}')">${ICONS.edit}</button>
+                   <button type="button" class="action-btn delete" title="Excluir" aria-label="Excluir" onclick="deleteDocument('${doc.id}')">${ICONS.trash}</button>`
+                : '';
+            return `<div class="action-btns">
+                <button type="button" class="action-btn" title="Preview" aria-label="Preview" onclick="previewDocument('${doc.id}')">${ICONS.preview}</button>
+                <button type="button" class="action-btn" title="Download" aria-label="Download" onclick="downloadDocument('${doc.id}')">${ICONS.download}</button>
+                ${manage}
+            </div>`;
+        }
+
+        function anexoActionButtons(filePath, nomeArquivo, options = {}) {
+            const path = encodeURIComponent(filePath || '');
+            const name = encodeURIComponent(nomeArquivo || (filePath || '').split('/').pop() || 'Arquivo');
+            const { documentoId, anexoId, canDelete } = options;
+            const deleteBtn = (canDelete && documentoId)
+                ? `<button type="button" class="action-btn delete" title="Excluir anexo" aria-label="Excluir anexo" onclick="deleteAnexo('${documentoId}', ${anexoId != null ? `'${anexoId}'` : 'null'}, decodeURIComponent('${path}'))">${ICONS.trash}</button>`
+                : '';
+            return `<div class="action-btns">
+                <button type="button" class="action-btn" title="Preview" aria-label="Preview" onclick="previewAnexo(decodeURIComponent('${path}'), decodeURIComponent('${name}'))">${ICONS.preview}</button>
+                <button type="button" class="action-btn" title="Download" aria-label="Download" onclick="downloadAnexo(decodeURIComponent('${path}'), decodeURIComponent('${name}'))">${ICONS.download}</button>
+                ${deleteBtn}
+            </div>`;
+        }
+
+        function renderEditAnexosList(documentoId) {
+            const list = document.getElementById('editAnexosList');
+            if (!list) return;
+            const documento = cachedDocs.find(d => String(d.id) === String(documentoId));
+            const anexos = getDocumentAnexos(documento);
+            if (!anexos.length) {
+                list.innerHTML = '<li style="color:#666;">Nenhum anexo ainda</li>';
+                return;
+            }
+            list.innerHTML = anexos.map(a => {
+                const label = a.nome_arquivo || a.file_path?.split('/').pop() || 'Arquivo';
+                const size = a.tamanho ? ` (${(a.tamanho / 1024).toFixed(2)} KB)` : '';
+                return `<li>
+                    <span>📎 ${label}${size}</span>
+                    ${anexoActionButtons(a.file_path, a.nome_arquivo, {
+                        documentoId,
+                        anexoId: a.id,
+                        canDelete: true
+                    })}
+                </li>`;
+            }).join('');
+        }
+
+        async function deleteAnexo(documentoId, anexoId, filePath) {
+            if (!window.supabaseClient) return;
+            const documento = cachedDocs.find(d => String(d.id) === String(documentoId));
+            if (!documento || !canManageDocument(documento)) {
+                alert('Você não tem permissão para excluir este anexo.');
+                return;
+            }
+            if (!confirm('Deseja realmente excluir este anexo?')) return;
+
+            try {
+                if (anexoId) {
+                    const { error } = await window.supabaseClient
+                        .from('documento_arquivos')
+                        .delete()
+                        .eq('id', anexoId);
+                    if (error) throw error;
+                } else if (filePath) {
+                    // Anexo legado só em documentos.file_path
+                    const { error } = await window.supabaseClient
+                        .from('documentos')
+                        .update({ file_path: null })
+                        .eq('id', documentoId);
+                    if (error) throw error;
+                }
+
+                if (filePath) {
+                    try {
+                        await window.supabaseClient.storage.from('documentos').remove([filePath]);
+                    } catch (_) {}
+                }
+
+                // Atualiza file_path legado para o primeiro anexo restante
+                const { data: remaining } = await window.supabaseClient
+                    .from('documento_arquivos')
+                    .select('file_path')
+                    .eq('documento_id', documentoId)
+                    .order('id', { ascending: true });
+                await window.supabaseClient
+                    .from('documentos')
+                    .update({ file_path: remaining?.[0]?.file_path || null })
+                    .eq('id', documentoId);
+
+                await loadDocumentsFromSupabase();
+                refreshStatsAndRecent();
+                renderEditAnexosList(documentoId);
+
+                // Se o seletor de anexos (preview) estiver aberto, fecha para evitar lista desatualizada
+                closePreviewModal();
+
+                const searchTerm = document.getElementById('searchDocs')?.value?.trim();
+                if (searchTerm) performSearch();
+            } catch (err) {
+                console.error(err);
+                alert('Erro ao excluir anexo: ' + (err.message || 'Erro desconhecido'));
+            }
+        }
+
         function getDocumentAnexos(documento) {
             if (documento?.anexos?.length) return documento.anexos;
             if (documento?.file_path) {
@@ -989,7 +1200,7 @@
             if (!window.supabaseClient) return;
             const { data, error } = await window.supabaseClient
                 .from('documentos')
-                .select('id, titulo, descricao, file_path, owner, created_at, areas (nome), assuntos (nome), tipos_documento (nome), documento_arquivos (id, file_path, nome_arquivo, tamanho)')
+                .select('id, titulo, descricao, file_path, owner, created_at, area_id, assunto_id, tipo_id, areas (nome), assuntos (nome), tipos_documento (nome), documento_arquivos (id, file_path, nome_arquivo, tamanho)')
                 .order('created_at', { ascending: true });
             if (error) {
                 console.error('Erro ao carregar documentos:', error);
@@ -1019,6 +1230,9 @@
                     anexos,
                     owner: d.owner,
                     created_at: d.created_at,
+                    area_id: d.area_id,
+                    assunto_id: d.assunto_id,
+                    tipo_id: d.tipo_id,
                     areaNome: d.areas?.nome || '',
                     assuntoNome: d.assuntos?.nome || '',
                     tipoNome: d.tipos_documento?.nome || ''
@@ -1026,38 +1240,20 @@
             });
         }
 
-        async function addDocumentSupabase(docData, files) {
-            if (!window.supabaseClient) return;
+        async function uploadAnexosToDocument(documentoId, files, ownerId) {
             const fileList = Array.from(files || []);
-            if (!fileList.length) {
-                throw new Error('Selecione pelo menos um arquivo.');
-            }
+            if (!fileList.length) return [];
 
             const uploadedPaths = [];
-            let documentoId = null;
+            const anexosRows = [];
+            // Pasta no Storage deve ser do usuário autenticado (política RLS do bucket)
+            const storageOwner = usuarioLogado.id;
 
             try {
-                const { data: insertedDoc, error: insertError } = await window.supabaseClient
-                    .from('documentos')
-                    .insert({
-                        titulo: docData.titulo,
-                        descricao: docData.descricao,
-                        area_id: Number(docData.area_id),
-                        assunto_id: Number(docData.assunto_id),
-                        tipo_id: Number(docData.tipo_id),
-                        file_path: null,
-                        owner: usuarioLogado.id
-                    })
-                    .select('id')
-                    .single();
-                if (insertError) throw insertError;
-                documentoId = insertedDoc.id;
-
-                const anexosRows = [];
                 for (let i = 0; i < fileList.length; i++) {
                     const file = fileList[i];
                     const safeFileName = `${Date.now()}_${i}_${sanitizeFileName(file.name)}`;
-                    const filePath = `${usuarioLogado.id}/${safeFileName}`;
+                    const filePath = `${storageOwner}/${safeFileName}`;
 
                     const { error: uploadError } = await window.supabaseClient
                         .storage
@@ -1082,18 +1278,51 @@
                     .insert(anexosRows);
                 if (anexosError) throw anexosError;
 
-                // Mantém file_path legado com o primeiro anexo (compatibilidade)
-                await window.supabaseClient
-                    .from('documentos')
-                    .update({ file_path: uploadedPaths[0] })
-                    .eq('id', documentoId);
-
+                return uploadedPaths;
             } catch (err) {
                 if (uploadedPaths.length) {
                     try {
                         await window.supabaseClient.storage.from('documentos').remove(uploadedPaths);
                     } catch (_) {}
                 }
+                throw err;
+            }
+        }
+
+        async function addDocumentSupabase(docData, files) {
+            if (!window.supabaseClient) return;
+            const fileList = Array.from(files || []);
+            if (!fileList.length) {
+                throw new Error('Selecione pelo menos um arquivo.');
+            }
+
+            let documentoId = null;
+
+            try {
+                const { data: insertedDoc, error: insertError } = await window.supabaseClient
+                    .from('documentos')
+                    .insert({
+                        titulo: docData.titulo,
+                        descricao: docData.descricao,
+                        area_id: Number(docData.area_id),
+                        assunto_id: Number(docData.assunto_id),
+                        tipo_id: Number(docData.tipo_id),
+                        file_path: null,
+                        owner: usuarioLogado.id
+                    })
+                    .select('id')
+                    .single();
+                if (insertError) throw insertError;
+                documentoId = insertedDoc.id;
+
+                const uploadedPaths = await uploadAnexosToDocument(documentoId, fileList, usuarioLogado.id);
+
+                await window.supabaseClient
+                    .from('documentos')
+                    .update({ file_path: uploadedPaths[0] })
+                    .eq('id', documentoId);
+
+            } catch (err) {
                 if (documentoId) {
                     try {
                         await window.supabaseClient.from('documentos').delete().eq('id', documentoId);
@@ -1125,6 +1354,166 @@
             }
             await loadDocumentsFromSupabase();
             refreshStatsAndRecent();
+        }
+
+        function closeEditModal() {
+            document.querySelectorAll('.edit-modal-overlay').forEach(el => el.remove());
+        }
+
+        function updateEditAssuntos(areaId, selectedAssuntoId) {
+            const assuntoSelect = document.getElementById('editDocAssunto');
+            if (!assuntoSelect) return;
+            assuntoSelect.innerHTML = '<option value="">Selecione um assunto</option>';
+            cachedAssuntos
+                .filter(a => String(a.area_id) === String(areaId))
+                .forEach(assunto => {
+                    const selected = String(assunto.id) === String(selectedAssuntoId) ? 'selected' : '';
+                    assuntoSelect.innerHTML += `<option value="${assunto.id}" ${selected}>${assunto.nome}</option>`;
+                });
+        }
+
+        function editDocument(id) {
+            const documento = cachedDocs.find(doc => String(doc.id) === String(id));
+            if (!documento) return;
+            if (!canManageDocument(documento)) {
+                alert('Você não tem permissão para editar este documento.');
+                return;
+            }
+
+            closeEditModal();
+            const areaOptions = cachedAreas.map(a =>
+                `<option value="${a.id}" ${String(a.id) === String(documento.area_id) ? 'selected' : ''}>${a.nome}</option>`
+            ).join('');
+            const tipoOptions = cachedTipos.map(t =>
+                `<option value="${t.id}" ${String(t.id) === String(documento.tipo_id) ? 'selected' : ''}>${t.nome}</option>`
+            ).join('');
+
+            const overlay = document.createElement('div');
+            overlay.className = 'edit-modal-overlay';
+            overlay.innerHTML = `
+                <div class="edit-modal" role="dialog" aria-modal="true">
+                    <h2>Editar documento</h2>
+                    <form id="editDocumentForm">
+                        <div class="form-group">
+                            <label for="editDocTitle">Título</label>
+                            <input type="text" id="editDocTitle" required value="">
+                        </div>
+                        <div class="form-group">
+                            <label for="editDocArea">Área</label>
+                            <select id="editDocArea" required>
+                                <option value="">Selecione uma área</option>
+                                ${areaOptions}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editDocAssunto">Assunto</label>
+                            <select id="editDocAssunto" required>
+                                <option value="">Selecione um assunto</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editDocTipo">Tipo de Documento</label>
+                            <select id="editDocTipo" required>
+                                <option value="">Selecione um tipo</option>
+                                ${tipoOptions}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editDocDescription">Descrição</label>
+                            <textarea id="editDocDescription" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Anexos atuais</label>
+                            <ul class="edit-anexos-list" id="editAnexosList"></ul>
+                        </div>
+                        <div class="form-group">
+                            <label for="editDocFiles">Adicionar novos anexos (opcional)</label>
+                            <input type="file" id="editDocFiles" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" multiple>
+                            <small style="color:#666;display:block;margin-top:0.35rem;">Os arquivos atuais serão mantidos. Use a lixeira para remover um anexo enviado por engano.</small>
+                        </div>
+                        <div class="edit-modal-footer">
+                            <button type="button" class="edit-btn-cancel" onclick="closeEditModal()">Cancelar</button>
+                            <button type="submit" class="edit-btn-save">Salvar alterações</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) closeEditModal();
+            });
+            document.body.appendChild(overlay);
+
+            // Preenche textos após insert (evita problemas com aspas no HTML)
+            document.getElementById('editDocTitle').value = documento.titulo || '';
+            document.getElementById('editDocDescription').value = documento.descricao || '';
+            updateEditAssuntos(documento.area_id, documento.assunto_id);
+            renderEditAnexosList(documento.id);
+
+            document.getElementById('editDocArea').addEventListener('change', function(e) {
+                updateEditAssuntos(e.target.value, null);
+            });
+
+            document.getElementById('editDocumentForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const saveBtn = this.querySelector('.edit-btn-save');
+                saveBtn.disabled = true;
+                saveBtn.textContent = 'Salvando...';
+                try {
+                    await saveEditedDocument(documento.id, documento.owner);
+                    alert('Documento atualizado com sucesso!');
+                    closeEditModal();
+                } catch (err) {
+                    console.error(err);
+                    alert('Erro ao atualizar documento: ' + (err.message || 'Erro desconhecido'));
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'Salvar alterações';
+                }
+            });
+        }
+
+        async function saveEditedDocument(documentoId, ownerId) {
+            if (!window.supabaseClient) return;
+
+            const titulo = document.getElementById('editDocTitle').value.trim();
+            const area_id = document.getElementById('editDocArea').value;
+            const assunto_id = document.getElementById('editDocAssunto').value;
+            const tipo_id = document.getElementById('editDocTipo').value;
+            const descricao = document.getElementById('editDocDescription').value;
+            const newFiles = document.getElementById('editDocFiles').files;
+
+            if (!titulo || !area_id || !assunto_id || !tipo_id) {
+                throw new Error('Preencha título, área, assunto e tipo.');
+            }
+
+            const { error: updateError } = await window.supabaseClient
+                .from('documentos')
+                .update({
+                    titulo,
+                    descricao,
+                    area_id: Number(area_id),
+                    assunto_id: Number(assunto_id),
+                    tipo_id: Number(tipo_id),
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', documentoId);
+            if (updateError) throw updateError;
+
+            if (newFiles && newFiles.length > 0) {
+                const uploadedPaths = await uploadAnexosToDocument(documentoId, newFiles, ownerId || usuarioLogado.id);
+                // Se o documento ainda não tinha file_path legado, preenche com o primeiro novo
+                const doc = cachedDocs.find(d => String(d.id) === String(documentoId));
+                if (!doc?.file_path && uploadedPaths[0]) {
+                    await window.supabaseClient
+                        .from('documentos')
+                        .update({ file_path: uploadedPaths[0] })
+                        .eq('id', documentoId);
+                }
+            }
+
+            await loadDocumentsFromSupabase();
+            refreshStatsAndRecent();
+            const searchTerm = document.getElementById('searchDocs')?.value?.trim();
+            if (searchTerm) performSearch();
         }
 
         async function getSignedUrl(filePath, expiresIn = 300) {
@@ -1257,17 +1646,16 @@
             // Vários anexos: escolher qual abrir no preview
             closePreviewModal();
             const listHtml = anexos.map(a => {
-                const path = encodeURIComponent(a.file_path);
-                const name = encodeURIComponent(a.nome_arquivo || a.file_path.split('/').pop() || 'Arquivo');
                 const label = a.nome_arquivo || a.file_path?.split('/').pop() || 'Arquivo';
                 const size = a.tamanho ? ` <small>(${(a.tamanho / 1024).toFixed(2)} KB)</small>` : '';
                 return `
                     <li style="display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:0.65rem 0;border-bottom:1px solid #eee;">
                         <span>${label}${size}</span>
-                        <span style="display:flex;gap:0.4rem;">
-                            <button type="button" class="action-btn" onclick="closePreviewModal(); previewAnexo(decodeURIComponent('${path}'), decodeURIComponent('${name}'))">Preview</button>
-                            <button type="button" class="action-btn" onclick="downloadAnexo(decodeURIComponent('${path}'), decodeURIComponent('${name}'))">Download</button>
-                        </span>
+                        ${anexoActionButtons(a.file_path, a.nome_arquivo, {
+                            documentoId: documento.id,
+                            anexoId: a.id,
+                            canDelete: canManageDocument(documento)
+                        })}
                     </li>
                 `;
             }).join('');
@@ -1300,18 +1688,15 @@
             const anexos = getDocumentAnexos(documento);
             const anexosHtml = anexos.length
                 ? `<ul style="list-style: none; padding: 0; margin: 0;">
-                    ${anexos.map(a => {
-                        const path = encodeURIComponent(a.file_path);
-                        const name = encodeURIComponent(a.nome_arquivo || a.file_path.split('/').pop() || 'Arquivo');
-                        return `
+                    ${anexos.map(a => `
                         <li style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
                             <span>${a.nome_arquivo || a.file_path?.split('/').pop() || 'Arquivo'}${a.tamanho ? ` <small>(${(a.tamanho / 1024).toFixed(2)} KB)</small>` : ''}</span>
-                            <span style="display:flex;gap:0.4rem;">
-                                <button type="button" onclick="previewAnexo(decodeURIComponent('${path}'), decodeURIComponent('${name}'))" style="background: #003366; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer;">Preview</button>
-                                <button type="button" onclick="downloadAnexo(decodeURIComponent('${path}'), decodeURIComponent('${name}'))" style="background: #0066cc; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer;">Download</button>
-                            </span>
-                        </li>`;
-                    }).join('')}
+                            ${anexoActionButtons(a.file_path, a.nome_arquivo, {
+                                documentoId: documento.id,
+                                anexoId: a.id,
+                                canDelete: canManageDocument(documento)
+                            })}
+                        </li>`).join('')}
                    </ul>`
                 : '<p style="color:#666;">Nenhum anexo encontrado.</p>';
 
@@ -1337,11 +1722,10 @@
                             <h4>Arquivos:</h4>
                             ${anexosHtml}
                         </div>
-                        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-                            ${documento.owner === usuarioLogado.id ? 
-                                `<button onclick="deleteDocument('${documento.id}'); this.parentElement.parentElement.parentElement.remove()" style="background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
-                                    <i>🗑️</i> Excluir
-                                </button>` : 
+                        <div style="display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap;">
+                            ${canManageDocument(documento) ? 
+                                `<button type="button" class="action-btn edit" title="Editar" aria-label="Editar" onclick="this.closest('div[style*=fixed]')?.remove(); editDocument('${documento.id}')">${ICONS.edit}</button>
+                                 <button type="button" class="action-btn delete" title="Excluir" aria-label="Excluir" onclick="deleteDocument('${documento.id}'); this.closest('div[style*=fixed]')?.remove()">${ICONS.trash}</button>` : 
                                 ''
                             }
                         </div>
