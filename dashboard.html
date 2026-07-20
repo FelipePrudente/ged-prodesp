@@ -237,6 +237,102 @@
             font-size: 1rem;
         }
 
+        .preview-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .preview-modal {
+            background: #fff;
+            border-radius: 10px;
+            width: min(960px, 96vw);
+            height: min(90vh, 900px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+        }
+
+        .preview-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0.9rem 1.1rem;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f8fafc;
+        }
+
+        .preview-modal-header h3 {
+            margin: 0;
+            color: #003366;
+            font-size: 1.05rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .preview-modal-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .preview-modal-actions button {
+            border: none;
+            border-radius: 6px;
+            padding: 8px 14px;
+            cursor: pointer;
+            color: #fff;
+            font-size: 0.9rem;
+        }
+
+        .preview-btn-download { background: #0066cc; }
+        .preview-btn-close { background: #e74c3c; }
+
+        .preview-modal-body {
+            flex: 1;
+            min-height: 0;
+            background: #f1f5f9;
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+        }
+
+        .preview-modal-body iframe,
+        .preview-modal-body img {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            background: #fff;
+        }
+
+        .preview-modal-body pre {
+            margin: 0;
+            padding: 1rem;
+            width: 100%;
+            overflow: auto;
+            background: #fff;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 0.9rem;
+        }
+
+        .preview-unsupported {
+            margin: auto;
+            padding: 2rem;
+            text-align: center;
+            color: #475569;
+            max-width: 420px;
+        }
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -663,7 +759,8 @@
                         <td>${doc.assuntoNome || '-'}</td>
                         <td>${new Date(doc.data || doc.created_at).toLocaleDateString('pt-BR')}</td>
                         <td>
-                            <button class="action-btn" onclick="viewDocument('${doc.id}')">Visualizar</button>
+                            <button class="action-btn" onclick="previewDocument('${doc.id}')">Preview</button>
+                            <button class="action-btn" onclick="downloadDocument('${doc.id}')">Download</button>
                             ${doc.owner === usuarioLogado.id ? 
                                 `<button class=\"action-btn delete\" onclick=\"deleteDocument('${doc.id}')\">Excluir</button>` : 
                                 ''
@@ -727,7 +824,7 @@
                 
                 const resultItem = `
                     <div class="result-item">
-                        <a href="#" class="result-title" onclick="viewDocument('${doc.id}'); return false;">
+                        <a href="#" class="result-title" onclick="previewDocument('${doc.id}'); return false;">
                             ${highlightedTitle}
                         </a>
                         <div class="result-meta">
@@ -741,8 +838,8 @@
                             ${highlightedDescricao}
                         </div>
                         <div class="result-actions">
-                            <button class="action-btn" onclick="viewDocument('${doc.id}')">
-                                <i>👁️</i> Visualizar
+                            <button class="action-btn" onclick="previewDocument('${doc.id}')">
+                                <i>👁️</i> Preview
                             </button>
                             <button class="action-btn" onclick="downloadDocument('${doc.id}')">
                                 <i>⬇️</i> Download
@@ -1030,17 +1127,170 @@
             refreshStatsAndRecent();
         }
 
-        async function downloadAnexo(filePath) {
-            if (!filePath || !window.supabaseClient) return;
+        async function getSignedUrl(filePath, expiresIn = 300) {
             const { data, error } = await window.supabaseClient
                 .storage
                 .from('documentos')
-                .createSignedUrl(filePath, 60);
-            if (error) {
-                alert('Erro ao gerar link de download.');
+                .createSignedUrl(filePath, expiresIn);
+            if (error) throw error;
+            return data.signedUrl;
+        }
+
+        function getFileExtension(nameOrPath) {
+            const name = (nameOrPath || '').split('?')[0];
+            const parts = name.split('.');
+            return parts.length > 1 ? parts.pop().toLowerCase() : '';
+        }
+
+        function closePreviewModal() {
+            document.querySelectorAll('.preview-modal-overlay').forEach(el => el.remove());
+        }
+
+        async function downloadAnexo(filePath, nomeArquivo) {
+            if (!filePath || !window.supabaseClient) return;
+            try {
+                const signedUrl = await getSignedUrl(filePath, 120);
+                const fileName = nomeArquivo || filePath.split('/').pop() || 'arquivo';
+                const response = await fetch(signedUrl);
+                if (!response.ok) throw new Error('Falha ao baixar arquivo');
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(blobUrl);
+            } catch (err) {
+                console.error(err);
+                alert('Erro ao gerar download do arquivo.');
+            }
+        }
+
+        async function previewAnexo(filePath, nomeArquivo) {
+            if (!filePath || !window.supabaseClient) return;
+            closePreviewModal();
+
+            const displayName = nomeArquivo || filePath.split('/').pop() || 'Arquivo';
+            const ext = getFileExtension(displayName) || getFileExtension(filePath);
+            const safePath = encodeURIComponent(filePath);
+            const safeName = encodeURIComponent(displayName);
+
+            const overlay = document.createElement('div');
+            overlay.className = 'preview-modal-overlay';
+            overlay.innerHTML = `
+                <div class="preview-modal" role="dialog" aria-modal="true">
+                    <div class="preview-modal-header">
+                        <h3 title="${displayName.replace(/"/g, '&quot;')}">${displayName}</h3>
+                        <div class="preview-modal-actions">
+                            <button type="button" class="preview-btn-download" onclick="downloadAnexo(decodeURIComponent('${safePath}'), decodeURIComponent('${safeName}'))">Download</button>
+                            <button type="button" class="preview-btn-close" onclick="closePreviewModal()">Fechar</button>
+                        </div>
+                    </div>
+                    <div class="preview-modal-body">
+                        <div class="preview-unsupported">Carregando preview...</div>
+                    </div>
+                </div>
+            `;
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) closePreviewModal();
+            });
+            document.body.appendChild(overlay);
+
+            const body = overlay.querySelector('.preview-modal-body');
+
+            try {
+                const signedUrl = await getSignedUrl(filePath, 600);
+                const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'];
+                const officeExts = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
+
+                if (ext === 'pdf') {
+                    body.innerHTML = `<iframe title="Preview PDF" src="${signedUrl}#toolbar=1"></iframe>`;
+                } else if (imageExts.includes(ext)) {
+                    body.innerHTML = `<img alt="${displayName.replace(/"/g, '&quot;')}" src="${signedUrl}">`;
+                } else if (ext === 'txt') {
+                    const resp = await fetch(signedUrl);
+                    const text = await resp.text();
+                    const pre = document.createElement('pre');
+                    pre.textContent = text;
+                    body.innerHTML = '';
+                    body.appendChild(pre);
+                } else if (officeExts.includes(ext)) {
+                    const officeUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(signedUrl)}`;
+                    body.innerHTML = `
+                        <iframe title="Preview Office" src="${officeUrl}"></iframe>
+                    `;
+                } else {
+                    body.innerHTML = `
+                        <div class="preview-unsupported">
+                            <p>Preview não disponível para este tipo de arquivo (<strong>.${ext || '?'}</strong>).</p>
+                            <p>Use o botão <strong>Download</strong> para baixar o arquivo.</p>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                console.error(err);
+                body.innerHTML = `
+                    <div class="preview-unsupported">
+                        <p>Não foi possível carregar o preview.</p>
+                        <p>Tente novamente ou use o botão Download.</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function previewDocument(id) {
+            const documento = cachedDocs.find(doc => String(doc.id) === String(id));
+            if (!documento) return;
+
+            const anexos = getDocumentAnexos(documento);
+            if (!anexos.length) {
+                alert('Este documento não possui anexos.');
                 return;
             }
-            window.open(data.signedUrl, '_blank');
+            if (anexos.length === 1) {
+                await previewAnexo(anexos[0].file_path, anexos[0].nome_arquivo);
+                return;
+            }
+
+            // Vários anexos: escolher qual abrir no preview
+            closePreviewModal();
+            const listHtml = anexos.map(a => {
+                const path = encodeURIComponent(a.file_path);
+                const name = encodeURIComponent(a.nome_arquivo || a.file_path.split('/').pop() || 'Arquivo');
+                const label = a.nome_arquivo || a.file_path?.split('/').pop() || 'Arquivo';
+                const size = a.tamanho ? ` <small>(${(a.tamanho / 1024).toFixed(2)} KB)</small>` : '';
+                return `
+                    <li style="display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:0.65rem 0;border-bottom:1px solid #eee;">
+                        <span>${label}${size}</span>
+                        <span style="display:flex;gap:0.4rem;">
+                            <button type="button" class="action-btn" onclick="closePreviewModal(); previewAnexo(decodeURIComponent('${path}'), decodeURIComponent('${name}'))">Preview</button>
+                            <button type="button" class="action-btn" onclick="downloadAnexo(decodeURIComponent('${path}'), decodeURIComponent('${name}'))">Download</button>
+                        </span>
+                    </li>
+                `;
+            }).join('');
+
+            const overlay = document.createElement('div');
+            overlay.className = 'preview-modal-overlay';
+            overlay.innerHTML = `
+                <div class="preview-modal" style="height:auto;max-height:80vh;">
+                    <div class="preview-modal-header">
+                        <h3>${documento.titulo} — escolher anexo</h3>
+                        <div class="preview-modal-actions">
+                            <button type="button" class="preview-btn-close" onclick="closePreviewModal()">Fechar</button>
+                        </div>
+                    </div>
+                    <div style="padding:1rem 1.25rem;overflow:auto;">
+                        <ul style="list-style:none;padding:0;margin:0;">${listHtml}</ul>
+                    </div>
+                </div>
+            `;
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) closePreviewModal();
+            });
+            document.body.appendChild(overlay);
         }
 
         async function viewDocument(id) {
@@ -1050,12 +1300,18 @@
             const anexos = getDocumentAnexos(documento);
             const anexosHtml = anexos.length
                 ? `<ul style="list-style: none; padding: 0; margin: 0;">
-                    ${anexos.map(a => `
+                    ${anexos.map(a => {
+                        const path = encodeURIComponent(a.file_path);
+                        const name = encodeURIComponent(a.nome_arquivo || a.file_path.split('/').pop() || 'Arquivo');
+                        return `
                         <li style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
                             <span>${a.nome_arquivo || a.file_path?.split('/').pop() || 'Arquivo'}${a.tamanho ? ` <small>(${(a.tamanho / 1024).toFixed(2)} KB)</small>` : ''}</span>
-                            <button type="button" onclick="downloadAnexo('${a.file_path}')" style="background: #0066cc; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer;">⬇️ Download</button>
-                        </li>
-                    `).join('')}
+                            <span style="display:flex;gap:0.4rem;">
+                                <button type="button" onclick="previewAnexo(decodeURIComponent('${path}'), decodeURIComponent('${name}'))" style="background: #003366; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer;">Preview</button>
+                                <button type="button" onclick="downloadAnexo(decodeURIComponent('${path}'), decodeURIComponent('${name}'))" style="background: #0066cc; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer;">Download</button>
+                            </span>
+                        </li>`;
+                    }).join('')}
                    </ul>`
                 : '<p style="color:#666;">Nenhum anexo encontrado.</p>';
 
@@ -1104,11 +1360,10 @@
                 return;
             }
             if (anexos.length === 1) {
-                await downloadAnexo(anexos[0].file_path);
+                await downloadAnexo(anexos[0].file_path, anexos[0].nome_arquivo);
                 return;
             }
-            // Vários anexos: abre a visualização para escolher qual baixar
-            await viewDocument(id);
+            await previewDocument(id);
         }
 
         // Form submission
