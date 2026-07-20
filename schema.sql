@@ -63,18 +63,27 @@ CREATE TABLE IF NOT EXISTS public.user_roles (
     UNIQUE(user_id, role)
 );
 
--- Colunas alinhadas com o frontend (file_path, owner)
+-- Metadados do documento; anexos ficam em documento_arquivos
 CREATE TABLE IF NOT EXISTS public.documentos (
     id BIGSERIAL PRIMARY KEY,
     titulo VARCHAR(255) NOT NULL,
     descricao TEXT,
-    file_path TEXT NOT NULL,
+    file_path TEXT, -- legado / opcional; preferir documento_arquivos
     owner UUID REFERENCES auth.users(id),
     area_id BIGINT REFERENCES public.areas(id),
     assunto_id BIGINT REFERENCES public.assuntos(id),
     tipo_id BIGINT REFERENCES public.tipos_documento(id),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.documento_arquivos (
+    id BIGSERIAL PRIMARY KEY,
+    documento_id BIGINT NOT NULL REFERENCES public.documentos(id) ON DELETE CASCADE,
+    file_path TEXT NOT NULL,
+    nome_arquivo VARCHAR(255) NOT NULL,
+    tamanho BIGINT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS public.solicitacoes_recuperacao (
@@ -99,6 +108,7 @@ ALTER TABLE public.tipos_documento ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.documentos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.documento_arquivos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.solicitacoes_recuperacao ENABLE ROW LEVEL SECURITY;
 
 -- =====================================================
@@ -196,6 +206,37 @@ FOR UPDATE USING (auth.uid() = owner OR public.is_admin());
 
 CREATE POLICY "documentos_delete_owner" ON public.documentos
 FOR DELETE USING (auth.uid() = owner OR public.is_admin());
+
+-- Anexos do documento
+CREATE POLICY "documento_arquivos_select_all" ON public.documento_arquivos
+FOR SELECT USING (true);
+
+CREATE POLICY "documento_arquivos_insert_owner" ON public.documento_arquivos
+FOR INSERT WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM public.documentos d
+        WHERE d.id = documento_id
+          AND (d.owner = auth.uid() OR public.is_admin())
+    )
+);
+
+CREATE POLICY "documento_arquivos_update_owner" ON public.documento_arquivos
+FOR UPDATE USING (
+    EXISTS (
+        SELECT 1 FROM public.documentos d
+        WHERE d.id = documento_id
+          AND (d.owner = auth.uid() OR public.is_admin())
+    )
+);
+
+CREATE POLICY "documento_arquivos_delete_owner" ON public.documento_arquivos
+FOR DELETE USING (
+    EXISTS (
+        SELECT 1 FROM public.documentos d
+        WHERE d.id = documento_id
+          AND (d.owner = auth.uid() OR public.is_admin())
+    )
+);
 
 -- Solicitações de recuperação
 CREATE POLICY "solicitacoes_select_all" ON public.solicitacoes_recuperacao
@@ -335,6 +376,7 @@ CREATE INDEX IF NOT EXISTS idx_user_roles_user_id ON public.user_roles(user_id);
 CREATE INDEX IF NOT EXISTS idx_documentos_owner ON public.documentos(owner);
 CREATE INDEX IF NOT EXISTS idx_documentos_area_id ON public.documentos(area_id);
 CREATE INDEX IF NOT EXISTS idx_documentos_assunto_id ON public.documentos(assunto_id);
+CREATE INDEX IF NOT EXISTS idx_documento_arquivos_documento_id ON public.documento_arquivos(documento_id);
 CREATE INDEX IF NOT EXISTS idx_solicitacoes_user_id ON public.solicitacoes_recuperacao(user_id);
 CREATE INDEX IF NOT EXISTS idx_solicitacoes_status ON public.solicitacoes_recuperacao(status);
 

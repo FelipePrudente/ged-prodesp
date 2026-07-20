@@ -532,12 +532,12 @@
                         </div>
                         
                         <div class="form-group">
-                            <label>Arquivo</label>
+                            <label>Arquivos (anexos)</label>
                             <div class="file-upload" onclick="document.getElementById('docFile').click()">
-                                <input type="file" id="docFile" name="docFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" required>
+                                <input type="file" id="docFile" name="docFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" multiple required>
                                 <div class="file-upload-label">
                                     <i>📁</i><br>
-                                    Clique para selecionar um arquivo<br>
+                                    Clique para selecionar um ou mais arquivos<br>
                                     <small>Formatos aceitos: PDF, DOC, DOCX, XLS, XLSX, TXT</small>
                                 </div>
                             </div>
@@ -734,6 +734,7 @@
                             <strong>Área:</strong> ${highlightedArea} | 
                             <strong>Assunto:</strong> ${highlightedAssunto} | 
                             <strong>Tipo:</strong> ${doc.tipoNome || ''} | 
+                            <strong>Anexos:</strong> ${getDocumentAnexos(doc).length} | 
                             <strong>Data:</strong> ${new Date(doc.data || doc.created_at).toLocaleDateString('pt-BR')}
                         </div>
                         <div class="result-description">
@@ -864,69 +865,144 @@
             })();
         }
 
+        const FILE_UPLOAD_LABEL_DEFAULT = '<i>📁</i><br>Clique para selecionar um ou mais arquivos<br><small>Formatos aceitos: PDF, DOC, DOCX, XLS, XLSX, TXT</small>';
+
+        function sanitizeFileName(fileName) {
+            return fileName
+                .replace(/[^a-zA-Z0-9.-]/g, '_')
+                .replace(/_+/g, '_')
+                .replace(/^_|_$/g, '');
+        }
+
+        function getDocumentAnexos(documento) {
+            if (documento?.anexos?.length) return documento.anexos;
+            if (documento?.file_path) {
+                return [{
+                    id: null,
+                    file_path: documento.file_path,
+                    nome_arquivo: documento.file_path.split('/').pop() || documento.file_path,
+                    tamanho: null
+                }];
+            }
+            return [];
+        }
+
         // ===== Integração Documentos com Supabase =====
         async function loadDocumentsFromSupabase() {
             if (!window.supabaseClient) return;
             const { data, error } = await window.supabaseClient
                 .from('documentos')
-                .select('id, titulo, descricao, file_path, owner, created_at, areas (nome), assuntos (nome), tipos_documento (nome)')
+                .select('id, titulo, descricao, file_path, owner, created_at, areas (nome), assuntos (nome), tipos_documento (nome), documento_arquivos (id, file_path, nome_arquivo, tamanho)')
                 .order('created_at', { ascending: true });
             if (error) {
                 console.error('Erro ao carregar documentos:', error);
                 return;
             }
-            cachedDocs = (data || []).map(d => ({
-                id: d.id,
-                titulo: d.titulo,
-                descricao: d.descricao,
-                file_path: d.file_path,
-                owner: d.owner,
-                created_at: d.created_at,
-                areaNome: d.areas?.nome || '',
-                assuntoNome: d.assuntos?.nome || '',
-                tipoNome: d.tipos_documento?.nome || ''
-            }));
+            cachedDocs = (data || []).map(d => {
+                const anexos = (d.documento_arquivos || []).map(a => ({
+                    id: a.id,
+                    file_path: a.file_path,
+                    nome_arquivo: a.nome_arquivo || a.file_path?.split('/').pop() || '',
+                    tamanho: a.tamanho
+                }));
+                // Compatibilidade com registros antigos sem linhas em documento_arquivos
+                if (!anexos.length && d.file_path) {
+                    anexos.push({
+                        id: null,
+                        file_path: d.file_path,
+                        nome_arquivo: d.file_path.split('/').pop() || d.file_path,
+                        tamanho: null
+                    });
+                }
+                return {
+                    id: d.id,
+                    titulo: d.titulo,
+                    descricao: d.descricao,
+                    file_path: anexos[0]?.file_path || d.file_path || null,
+                    anexos,
+                    owner: d.owner,
+                    created_at: d.created_at,
+                    areaNome: d.areas?.nome || '',
+                    assuntoNome: d.assuntos?.nome || '',
+                    tipoNome: d.tipos_documento?.nome || ''
+                };
+            });
         }
 
-        async function addDocumentSupabase(docData, file) {
+        async function addDocumentSupabase(docData, files) {
             if (!window.supabaseClient) return;
-            // Upload para Storage
-            // Sanitizar nome do arquivo - remover caracteres especiais e espaços
-            const sanitizeFileName = (fileName) => {
-                return fileName
-                    .replace(/[^a-zA-Z0-9.-]/g, '_') // Remove caracteres especiais
-                    .replace(/_+/g, '_') // Remove múltiplos underscores consecutivos
-                    .replace(/^_|_$/g, ''); // Remove underscores no início e fim
-            };
-            
-            const safeFileName = `${Date.now()}_${sanitizeFileName(file.name)}`;
-            const filePath = `${usuarioLogado.id}/${safeFileName}`;
-            
-            const { error: uploadError } = await window.supabaseClient
-                .storage
-                .from('documentos')
-                .upload(filePath, file, { 
-                    upsert: false, 
-                    contentType: file.type || 'application/octet-stream' 
-                });
-            if (uploadError) {
-                throw uploadError;
+            const fileList = Array.from(files || []);
+            if (!fileList.length) {
+                throw new Error('Selecione pelo menos um arquivo.');
             }
 
-            // Inserir metadados
-            const { error: insertError } = await window.supabaseClient
-                .from('documentos')
-                .insert({
-                    titulo: docData.titulo,
-                    descricao: docData.descricao,
-                    area_id: Number(docData.area_id),
-                    assunto_id: Number(docData.assunto_id),
-                    tipo_id: Number(docData.tipo_id),
-                    file_path: filePath,
-                    owner: usuarioLogado.id
-                });
-            if (insertError) {
-                throw insertError;
+            const uploadedPaths = [];
+            let documentoId = null;
+
+            try {
+                const { data: insertedDoc, error: insertError } = await window.supabaseClient
+                    .from('documentos')
+                    .insert({
+                        titulo: docData.titulo,
+                        descricao: docData.descricao,
+                        area_id: Number(docData.area_id),
+                        assunto_id: Number(docData.assunto_id),
+                        tipo_id: Number(docData.tipo_id),
+                        file_path: null,
+                        owner: usuarioLogado.id
+                    })
+                    .select('id')
+                    .single();
+                if (insertError) throw insertError;
+                documentoId = insertedDoc.id;
+
+                const anexosRows = [];
+                for (let i = 0; i < fileList.length; i++) {
+                    const file = fileList[i];
+                    const safeFileName = `${Date.now()}_${i}_${sanitizeFileName(file.name)}`;
+                    const filePath = `${usuarioLogado.id}/${safeFileName}`;
+
+                    const { error: uploadError } = await window.supabaseClient
+                        .storage
+                        .from('documentos')
+                        .upload(filePath, file, {
+                            upsert: false,
+                            contentType: file.type || 'application/octet-stream'
+                        });
+                    if (uploadError) throw uploadError;
+                    uploadedPaths.push(filePath);
+
+                    anexosRows.push({
+                        documento_id: documentoId,
+                        file_path: filePath,
+                        nome_arquivo: file.name,
+                        tamanho: file.size
+                    });
+                }
+
+                const { error: anexosError } = await window.supabaseClient
+                    .from('documento_arquivos')
+                    .insert(anexosRows);
+                if (anexosError) throw anexosError;
+
+                // Mantém file_path legado com o primeiro anexo (compatibilidade)
+                await window.supabaseClient
+                    .from('documentos')
+                    .update({ file_path: uploadedPaths[0] })
+                    .eq('id', documentoId);
+
+            } catch (err) {
+                if (uploadedPaths.length) {
+                    try {
+                        await window.supabaseClient.storage.from('documentos').remove(uploadedPaths);
+                    } catch (_) {}
+                }
+                if (documentoId) {
+                    try {
+                        await window.supabaseClient.from('documentos').delete().eq('id', documentoId);
+                    } catch (_) {}
+                }
+                throw err;
             }
 
             await loadDocumentsFromSupabase();
@@ -934,11 +1010,11 @@
         }
 
         async function deleteDocument(id) {
-            if (!confirm('Deseja realmente excluir este documento?')) return;
+            if (!confirm('Deseja realmente excluir este documento e todos os anexos?')) return;
             if (!window.supabaseClient) return;
-            // Obter path para remover do storage
             const doc = cachedDocs.find(d => String(d.id) === String(id));
-            const filePath = doc?.file_path;
+            const paths = getDocumentAnexos(doc).map(a => a.file_path).filter(Boolean);
+
             const { error } = await window.supabaseClient
                 .from('documentos')
                 .delete()
@@ -947,68 +1023,19 @@
                 alert('Erro ao excluir documento: ' + (error.message || 'Erro desconhecido'));
                 return;
             }
-            if (filePath) {
-                await window.supabaseClient.storage.from('documentos').remove([filePath]);
+            if (paths.length) {
+                await window.supabaseClient.storage.from('documentos').remove(paths);
             }
             await loadDocumentsFromSupabase();
             refreshStatsAndRecent();
         }
 
-        async function viewDocument(id) {
-            const documento = cachedDocs.find(doc => String(doc.id) === String(id));
-            
-            if (documento) {
-                let signedUrl = null;
-                try {
-                    const { data } = await window.supabaseClient
-                        .storage
-                        .from('documentos')
-                        .createSignedUrl(documento.file_path, 60);
-                    signedUrl = data?.signedUrl || null;
-                } catch (_) {}
-                const modal = `
-                    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
-                        <div style="background: white; padding: 2rem; border-radius: 10px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                                <h2 style="color: #003366; margin: 0;">${documento.titulo}</h2>
-                                <button onclick="this.parentElement.parentElement.parentElement.remove()" style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer;">✕</button>
-                            </div>
-                            <div style="margin-bottom: 1rem;">
-                                <p><strong>Área:</strong> ${documento.areaNome || '-'}</p>
-                                <p><strong>Assunto:</strong> ${documento.assuntoNome || '-'}</p>
-                                <p><strong>Tipo:</strong> ${documento.tipoNome || '-'}</p>
-                                <p><strong>Data:</strong> ${new Date(documento.created_at).toLocaleDateString('pt-BR')}</p>
-                                <p><strong>Arquivo:</strong> ${documento.file_path?.split('/').pop() || ''}</p>
-                            </div>
-                            <div style="margin-bottom: 1rem;">
-                                <h4>Descrição:</h4>
-                                <p style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">${documento.descricao || 'Sem descrição'}</p>
-                            </div>
-                            <div style="display: flex; gap: 1rem;">
-                                <a href="${signedUrl || '#'}" target="_blank" rel="noopener" style="background: #0066cc; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; text-decoration: none; display: inline-block;">
-                                    <i>⬇️</i> Download
-                                </a>
-                                ${documento.owner === usuarioLogado.id ? 
-                                    `<button onclick="deleteDocument('${documento.id}'); this.parentElement.parentElement.parentElement.remove()" style="background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
-                                        <i>🗑️</i> Excluir
-                                    </button>` : 
-                                    ''
-                                }
-                            </div>
-                        </div>
-                    </div>
-                `;
-                document.body.insertAdjacentHTML('beforeend', modal);
-            }
-        }
-
-        async function downloadDocument(id) {
-            const documento = cachedDocs.find(doc => String(doc.id) === String(id));
-            if (!documento) return;
+        async function downloadAnexo(filePath) {
+            if (!filePath || !window.supabaseClient) return;
             const { data, error } = await window.supabaseClient
                 .storage
                 .from('documentos')
-                .createSignedUrl(documento.file_path, 60);
+                .createSignedUrl(filePath, 60);
             if (error) {
                 alert('Erro ao gerar link de download.');
                 return;
@@ -1016,13 +1043,81 @@
             window.open(data.signedUrl, '_blank');
         }
 
+        async function viewDocument(id) {
+            const documento = cachedDocs.find(doc => String(doc.id) === String(id));
+            if (!documento) return;
+
+            const anexos = getDocumentAnexos(documento);
+            const anexosHtml = anexos.length
+                ? `<ul style="list-style: none; padding: 0; margin: 0;">
+                    ${anexos.map(a => `
+                        <li style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                            <span>${a.nome_arquivo || a.file_path?.split('/').pop() || 'Arquivo'}${a.tamanho ? ` <small>(${(a.tamanho / 1024).toFixed(2)} KB)</small>` : ''}</span>
+                            <button type="button" onclick="downloadAnexo('${a.file_path}')" style="background: #0066cc; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer;">⬇️ Download</button>
+                        </li>
+                    `).join('')}
+                   </ul>`
+                : '<p style="color:#666;">Nenhum anexo encontrado.</p>';
+
+            const modal = `
+                <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+                    <div style="background: white; padding: 2rem; border-radius: 10px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h2 style="color: #003366; margin: 0;">${documento.titulo}</h2>
+                            <button onclick="this.parentElement.parentElement.parentElement.remove()" style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer;">✕</button>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <p><strong>Área:</strong> ${documento.areaNome || '-'}</p>
+                            <p><strong>Assunto:</strong> ${documento.assuntoNome || '-'}</p>
+                            <p><strong>Tipo:</strong> ${documento.tipoNome || '-'}</p>
+                            <p><strong>Data:</strong> ${new Date(documento.created_at).toLocaleDateString('pt-BR')}</p>
+                            <p><strong>Anexos:</strong> ${anexos.length}</p>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <h4>Descrição:</h4>
+                            <p style="background: #f8f9fa; padding: 1rem; border-radius: 5px;">${documento.descricao || 'Sem descrição'}</p>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <h4>Arquivos:</h4>
+                            ${anexosHtml}
+                        </div>
+                        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                            ${documento.owner === usuarioLogado.id ? 
+                                `<button onclick="deleteDocument('${documento.id}'); this.parentElement.parentElement.parentElement.remove()" style="background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                                    <i>🗑️</i> Excluir
+                                </button>` : 
+                                ''
+                            }
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modal);
+        }
+
+        async function downloadDocument(id) {
+            const documento = cachedDocs.find(doc => String(doc.id) === String(id));
+            if (!documento) return;
+            const anexos = getDocumentAnexos(documento);
+            if (!anexos.length) {
+                alert('Este documento não possui anexos.');
+                return;
+            }
+            if (anexos.length === 1) {
+                await downloadAnexo(anexos[0].file_path);
+                return;
+            }
+            // Vários anexos: abre a visualização para escolher qual baixar
+            await viewDocument(id);
+        }
+
         // Form submission
         document.getElementById('documentForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const fileInput = document.getElementById('docFile');
-            const file = fileInput.files[0];
-            if (!file) {
-                alert('Por favor, selecione um arquivo.');
+            const files = fileInput.files;
+            if (!files || files.length === 0) {
+                alert('Por favor, selecione pelo menos um arquivo.');
                 return;
             }
             const formData = {
@@ -1033,11 +1128,11 @@
                 descricao: document.getElementById('docDescription').value
             };
             try {
-                await addDocumentSupabase(formData, file);
-                alert('Documento cadastrado com sucesso!');
+                await addDocumentSupabase(formData, files);
+                alert(`Documento cadastrado com sucesso! (${files.length} anexo(s))`);
                 this.reset();
                 fileInput.value = '';
-                document.querySelector('.file-upload-label').innerHTML = '<i>📁</i><br>Clique para selecionar um arquivo<br><small>Formatos aceitos: PDF, DOC, DOCX, XLS, XLSX, TXT</small>';
+                document.querySelector('.file-upload-label').innerHTML = FILE_UPLOAD_LABEL_DEFAULT;
             } catch (err) {
                 console.error('Erro detalhado:', err);
                 let errorMessage = 'Erro desconhecido';
@@ -1054,13 +1149,18 @@
             }
         });
 
-        // File upload preview
+        // File upload preview (múltiplos)
         document.getElementById('docFile').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const label = document.querySelector('.file-upload-label');
-                label.innerHTML = `<i>📁</i><br>Arquivo selecionado: ${file.name}<br><small>Tamanho: ${(file.size / 1024).toFixed(2)} KB</small>`;
+            const files = Array.from(e.target.files || []);
+            const label = document.querySelector('.file-upload-label');
+            if (!files.length) {
+                label.innerHTML = FILE_UPLOAD_LABEL_DEFAULT;
+                return;
             }
+            const lista = files.map(f =>
+                `• ${f.name} <small>(${(f.size / 1024).toFixed(2)} KB)</small>`
+            ).join('<br>');
+            label.innerHTML = `<i>📁</i><br><strong>${files.length} arquivo(s) selecionado(s):</strong><br>${lista}`;
         });
 
         // Search functionality
